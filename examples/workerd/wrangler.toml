@@ -1,0 +1,5 @@
+name = "coverage-wasm-workerd-example"
+main = "src/entrypoint.py"
+base_dir = "src"
+compatibility_date = "2026-11-16"
+compatibility_flags = ["python_workers"]

@@ -1,0 +1,32 @@
+[project]
+name = "coverage-wasm-pyodide-example"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[dependency-groups]
+dev = [
+    "coverage-wasm==0.2.0",
+    "pytest==9.2.0",
+    "pytest-cov==7.1.0",
+    "pytest-pyodide==0.59.4",
+]
+
+[tool.uv.sources]
+coverage-wasm = { path = "../../dist/coverage_wasm-0.2.0-py3-none-any.whl" }
+
+[tool.pytest.ini_options]
+addopts = "--runtime=node --dist-dir=.pyodide/node_modules/pyodide"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+branch = true
+include = ["*/shipping.py"]
+
+[tool.coverage.paths]
+shipping = [".", "/app"]
+
+[tool.coverage.html]
+show_contexts = true
+
+[tool.pyright]
+typeCheckingMode = "strict"

@@ -1,0 +1,8 @@
+{
+  "name": "coverage-wasm-workerd-example",
+  "private": true,
+  "devDependencies": {
+    "wrangler": "4.164.0",
+    "ws": "8.18.3"
+  }
+}

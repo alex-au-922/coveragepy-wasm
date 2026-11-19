@@ -1,0 +1,28 @@
+[project]
+name = "coverage-wasm-wasi-example"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[dependency-groups]
+dev = ["coverage-wasm==0.2.0", "pytest==9.2.0", "wasi-python==0.1.5"]
+
+[tool.uv.sources]
+coverage-wasm = { path = "../../dist/coverage_wasm-0.2.0-py3-none-any.whl" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+data_file = "output/coverage/.coverage"
+source = ["src"]
+
+[tool.coverage.paths]
+source = ["src", "/app"]
+
+[tool.coverage.report]
+fail_under = 100
+
+[tool.coverage.html]
+directory = "output/htmlcov"
+show_contexts = true

@@ -1,0 +1,45 @@
+[project]
+name = "coverage-wasm"
+version = "0.2.0"
+description = "Bring Python coverage data from WebAssembly runtimes to Coverage.py"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["coverage==7.17.3", "pytest>=8.4"]
+keywords = ["coverage", "pytest", "webassembly", "pyodide"]
+classifiers = ["Development Status :: 3 - Alpha", "Framework :: Pytest"]
+
+[project.entry-points.pytest11]
+coverage-wasm = "coverage_wasm.pytest_plugin"
+
+[dependency-groups]
+dev = ["pytest>=9", "pytest-cov==7.1.0", "ruff>=0.11", "pyright>=1.1.395"]
+wasm-test = ["pytest-pyodide==0.59.4", "wasi-python==0.1.5"]
+
+[build-system]
+requires = ["uv_build>=0.9,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+source-include = [
+    "CHANGELOG.md",
+    "examples/README.md",
+    "examples/*/README.md",
+    "examples/*/pyproject.toml",
+    "examples/pyodide/*.py",
+    "examples/wasi/src/*.py",
+    "examples/wasi/tests/*.py",
+    "examples/workerd/*.py",
+    "examples/workerd/src/*.py",
+    "examples/workerd/package.json",
+    "examples/workerd/wrangler.toml",
+]
+
+[tool.pyright]
+include = ["src", "tests"]
+typeCheckingMode = "strict"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

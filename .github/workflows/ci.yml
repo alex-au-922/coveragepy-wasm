@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.4"
+          python-version: "3.14"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24.18.0"
+          package-manager-cache: false
+
+      - name: Build and check distributions
+        run: |
+          uv build
+          uvx twine check --strict dist/*.whl dist/*.tar.gz
+
+      - name: Install Pyodide
+        working-directory: examples/pyodide
+        run: npm install --prefix .pyodide --no-save --no-package-lock pyodide@314.0.8
+
+      - name: Check source and run the runtime test suite
+        run: |
+          uv run --locked --group wasm-test ruff format --check src tests
+          uv run --locked --group wasm-test ruff check src tests
+          uv run --locked --group wasm-test pyright
+          coverage_version=$(uv run --locked --group wasm-test python -c 'import coverage; print(coverage.__version__)')
+          uvx --from pip pip download --only-binary=:all: --platform any --no-deps \
+            --dest "$RUNNER_TEMP" "coverage==$coverage_version"
+          WASM_COVERAGE_PURE_WHEEL="$RUNNER_TEMP/coverage-$coverage_version-py3-none-any.whl" \
+            uv run --locked --group wasm-test pytest --no-wasm-coverage --runtime=node \
+              --dist-dir=examples/pyodide/.pyodide/node_modules/pyodide
+
+      - name: Test the minimum Python and pytest with the wheel
+        working-directory: examples/pyodide
+        run: |
+          uv run --no-project --python 3.11 --with ../../dist/coverage_wasm-*.whl \
+            --with pytest==8.4.0 --with pytest-pyodide==0.59.4 \
+            pytest
+          test -s htmlcov/index.html
+
+      - name: Test the Pyodide example with the wheel
+        working-directory: examples/pyodide
+        run: |
+          uv run pytest
+          uv run pytest --cov --cov-report=html:htmlcov-merged
+          test -s htmlcov-merged/index.html
+
+      - name: Test the WASI example with the wheel
+        working-directory: examples/wasi
+        run: |
+          uv run pytest
+          test -s output/htmlcov/index.html
+
+      - name: Test the Workerd example with the wheel
+        working-directory: examples/workerd
+        run: |
+          npm install --no-audit --no-fund
+          uv run pytest
+          test -s htmlcov/index.html
+
+      - name: Keep the tested distributions and reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-wasm-preview
+          if-no-files-found: error
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            examples/pyodide/htmlcov/
+            examples/pyodide/htmlcov-merged/
+            examples/wasi/output/htmlcov/
+            examples/workerd/htmlcov/
