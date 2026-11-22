@@ -35,7 +35,9 @@ The [guest test](test_shipping.py) uses this fixture with
 `@run_in_pyodide` and copies in the example's source file. The decorator
 passes `None` for the runner argument inside the guest. If your app is
 already installed in Pyodide, import it inside the test. Suites using a
-supported fixture such as `selenium_standalone` can collect automatically.
+supported fixture such as
+[`selenium_standalone`](https://github.com/pyodide/pytest-pyodide#usage)
+can collect automatically.
 
 The [coverage configuration](pyproject.toml) maps guest `/home/pyodide` to
 this directory and enables branch coverage for both collectors.

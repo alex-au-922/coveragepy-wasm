@@ -2,6 +2,7 @@ name: 100% E2E coverage gate
 
 on:
   push:
+    branches-ignore: [main]
   pull_request:
   workflow_call:
 

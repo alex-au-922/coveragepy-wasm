@@ -8,9 +8,9 @@
 
 Measure Python running in [Pyodide](#pyodide), [Workerd](#workerd), or
 [CPython on WASI](#cpython-on-wasi) while you run pytest.
-Coverage.py measures code inside the guest.
+[`coverage.py`][coverage-py] measures code inside the guest.
 The plugin brings its coverage data back to pytest-cov, which combines it with
-host coverage in a standard Coverage.py report.
+host coverage in a standard `coverage.py` report.
 
 ## Contents
 
@@ -36,7 +36,8 @@ uv add --dev coverage-wasm
 ```
 
 With pip, run `python -m pip install coverage-wasm` in your test environment.
-The distribution includes pytest-cov as a dependency. It is named
+Installing the package also installs [`coverage.py`][coverage-py] for coverage
+measurement and `pytest-cov` for pytest integration. The distribution is
 `coverage-wasm` on PyPI and imported as `coverage_wasm`.
 
 ### Latest preview from GitHub
@@ -78,8 +79,10 @@ and expected branches in each HTML report.
 ### Pyodide
 
 Install `pytest-pyodide` in your test environment. Use a supported
-function-scoped fixture such as `selenium_standalone` for automatic coverage.
-For a shared or custom runner, attach coverage in a host-side fixture.
+function-scoped fixture such as
+[`selenium_standalone`](https://github.com/pyodide/pytest-pyodide#usage)
+for automatic coverage. For a shared or custom runner, attach coverage
+in a host-side fixture.
 
 ```python
 from collections.abc import Iterator
@@ -243,18 +246,18 @@ def test_free_shipping(wasm_coverage: WasmCoverage) -> None:
         assert result.stdout.strip() == b"0"
 ```
 
-Python on WASI needs `sqlite3` for Coverage.py. For other guest launchers,
+Python on WASI needs `sqlite3` for `coverage.py`. For other guest launchers,
 pass a native coverage file to `wasm_coverage.add_file(path)`. See the
 [WASI fixture](examples/wasi/tests/conftest.py).
 
 The WASI runner uses your grants to map source files back to the host.
-An explicit Coverage.py `[paths]` configuration takes precedence.
-Use Coverage.py's `omit` setting if a nested grant exposes files outside the
+An explicit `coverage.py` `[paths]` configuration takes precedence.
+Use `coverage.py`'s `omit` setting if a nested grant exposes files outside the
 source tree you're measuring.
 
 ## Coverage configuration
 
-Use Coverage.py's `[paths]` to describe where the same files live. For a project
+Use `coverage.py`'s `[paths]` to describe where the same files live. For a project
 with local `src/shipping.py` and guest `/app/shipping.py`, use this configuration
 in `pyproject.toml`.
 
@@ -271,7 +274,7 @@ show_contexts = true
 ```
 
 Put the host directory first. The plugin applies the guest alias when starting
-guest coverage, and Coverage.py maps the measured paths back to `src` when it
+guest coverage, and `coverage.py` maps the measured paths back to `src` when it
 combines the data. `branch = true` enables branch coverage for both collectors.
 
 ```sh
@@ -287,18 +290,7 @@ one test. If you use pytest-xdist by default, pass `-n 0` for the Wasm run.
 
 ## Compatibility
 
-The host runs pytest. Each Wasm runtime provides its own guest Python.
-The host requires Python 3.11+ and pytest 8.4+. The package pins Coverage.py
-7.17.3 for host collection and merging.
-
-| CI check | Host CPython |
-| --- | --- |
-| Installed-wheel E2E in Pyodide, Workerd, and WASI | 3.11–3.15 |
-| Minimum pytest version (8.4) | 3.11 |
-| 100% package line and branch coverage | 3.14 |
-
-The [examples](examples/README.md) list the tested guest runtime versions.
-Workerd branch coverage uses guest Python 3.14 and `sysmon`.
+Requires host CPython 3.11+ and pytest 8.4+.
 
 ## Custom launchers
 
@@ -324,9 +316,9 @@ def launch(
 ```
 
 `start` receives `None` when coverage is disabled. With coverage enabled,
-`GuestCoverage` supplies the test `context` and Coverage.py's `branch`,
+`GuestCoverage` supplies the test `context` and `coverage.py`'s `branch`,
 `source`, `include`, and `omit` settings. Use those settings before running
-the application and call `guest.save(snapshot)` with the native Coverage.py
+the application and call `guest.save(snapshot)` with the native `coverage.py`
 file bytes before the runtime or its output disappears.
 
 `launch` returns the launcher's result. A one-shot launcher can return a
@@ -335,7 +327,7 @@ context manager that saves coverage during exit, before shutting down the
 server.
 
 `source_aliases` supplies fallback host-to-guest paths for computing source
-filters. Coverage.py's `[paths]` takes precedence and controls how snapshots
+filters. `coverage.py`'s `[paths]` takes precedence and controls how snapshots
 are combined. A launcher may also translate its snapshot's filenames before
 saving, as the WASI adapter does with filesystem grants.
 
@@ -352,31 +344,40 @@ mise test
 
 `mise test` runs the full Nox matrix. Run `mise test 3.11` to select one host
 version. The [CI workflow](.github/workflows/coverage.yml) builds one wheel
-and runs the five host versions as parallel jobs on pushes and pull requests.
-The 3.14 job also checks 100% package line and branch coverage and runs the
-example projects. Open `htmlcov/index.html` after a full local run or download
-the `coverage-wasm-reports` artifact for the package and example HTML reports.
+and runs the five host versions as parallel jobs for pull requests and pushes
+to development branches. The 3.14 job also checks 100% package line and branch
+coverage and runs the example projects. Open `htmlcov/index.html` after a full
+local run or download the `coverage-wasm-reports` artifact for the package and
+example HTML reports.
 
 ### Release process
 
-For a release, set the Python package version in `pyproject.toml`, run
-`uv lock`, and update the examples' matching wheel references. Git tags
-use SemVer with a `v` prefix. Python artifacts use PEP 440 versions.
+Protect `main` with a GitHub rule that requires a pull request, code-owner
+approval, and successful `build` and `Wasm E2E (Python …)` checks from the
+[coverage workflow](.github/workflows/coverage.yml).
+[`CODEOWNERS`](.github/CODEOWNERS) assigns review to `@alex-au-922`.
+Add a second eligible code owner to approve PRs authored by Alex.
 
-| Release | Git tag | Python version | Distribution |
+Set the package version in `pyproject.toml`, run `uv lock`, and update the
+examples' matching wheel references. When the version bump reaches protected
+`main`, [`release.yml`](.github/workflows/release.yml) runs the full test
+matrix against that commit. It then creates the matching tag and publishes
+stable distributions using the wheel and source archive from that run.
+
+| Release | Package version | Generated tag | Distribution |
 | --- | --- | --- | --- |
-| Candidate | `v0.2.0-rc.1` | `0.2.0rc1` | GitHub Actions artifacts |
-| Final | `v0.2.0` | `0.2.0` | PyPI after a published GitHub Release |
+| Candidate | `0.2.0rc1` | `v0.2.0-rc.1` | GitHub Actions artifacts |
+| Final | `0.2.0` | `v0.2.0` | PyPI and GitHub Actions artifacts |
 
-Pushing either tag runs CI and saves the tested wheel and source distribution
-as GitHub Actions artifacts. A GitHub prerelease can use the RC tag. The
-[PyPI workflow](.github/workflows/release.yml) uploads distributions only
-for a published final GitHub Release, after verifying its tag, package
-version, and test results.
+Existing tags keep their original commit. Merge a new package version to
+start another release.
 
-Before the first final release, register a [pending Trusted Publisher](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/)
+Before the first stable release, register a
+[pending Trusted Publisher](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/)
 on PyPI for project `coverage-wasm`, owner `alex-au-922`, repository
 `coverage-wasm`, and workflow `release.yml`. Leave the environment field
 empty for this workflow.
 
 See the [changelog](CHANGELOG.md) and [MIT license](LICENSE).
+
+[coverage-py]: https://github.com/coveragepy/coveragepy

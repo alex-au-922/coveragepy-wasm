@@ -1,19 +1,55 @@
-name: Publish to PyPI
+name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+    paths: [pyproject.toml]
 
 permissions:
   contents: read
 
 jobs:
+  plan:
+    if: github.ref_protected
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      create_tag: ${{ steps.version.outputs.create_tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Read the release version
+        id: version
+        env:
+          PREVIOUS_SHA: ${{ github.event.before }}
+        run: python3 .github/scripts/plan_release.py
+
   verify:
+    needs: plan
+    if: needs.plan.outputs.tag != ''
     uses: ./.github/workflows/coverage.yml
 
+  tag:
+    needs: [plan, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Tag the verified commit
+        if: needs.plan.outputs.create_tag == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          gh api --silent --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f "ref=refs/tags/$RELEASE_TAG" -f "sha=$GITHUB_SHA"
+
   publish:
-    if: github.event.release.prerelease == false
-    needs: verify
+    if: needs.plan.outputs.prerelease == 'false'
+    needs: [plan, tag]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -26,3 +62,5 @@ jobs:
 
       - name: Publish the tested distributions to PyPI
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          skip-existing: true

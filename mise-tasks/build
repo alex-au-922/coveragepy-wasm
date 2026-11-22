@@ -2,31 +2,6 @@
 #MISE description="Build and validate the wheel and source distribution"
 set -euo pipefail
 
-if [[ ${GITHUB_REF_TYPE:-} == tag ]]; then
-    uv run --locked --no-default-groups python - <<'PY'
-import json
-import os
-import re
-import tomllib
-from pathlib import Path
-
-from packaging.version import Version
-
-version = Version(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])
-match = re.fullmatch(r"(\d+\.\d+\.\d+)(?:rc(\d+))?", str(version))
-if match is None:
-    raise SystemExit("Use a major.minor.patch version or a release candidate")
-base, candidate = match.groups()
-tag = f"v{base}-rc.{candidate}" if candidate is not None else f"v{base}"
-if os.environ["GITHUB_REF_NAME"] != tag:
-    raise SystemExit(f"The release tag must be {tag}")
-if os.environ["GITHUB_EVENT_NAME"] == "release":
-    release = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())["release"]
-    if version.is_prerelease != release["prerelease"]:
-        raise SystemExit("The GitHub prerelease flag must match the package version")
-PY
-fi
-
 version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
 uv build --no-sources
 uv tool run twine check --strict "dist/coverage_wasm-$version-py3-none-any.whl" "dist/coverage_wasm-$version.tar.gz"
