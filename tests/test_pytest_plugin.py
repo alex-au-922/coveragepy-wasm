@@ -366,7 +366,7 @@ def test_uncovered_bundle_uses_original_path(wasm_coverage, tmp_path):
 """
     )
 
-    result = pytester.runpytest_inprocess(*SYNC_ONLY, "--cov", "--cov-report=")
+    result = pytester.runpytest_subprocess(*SYNC_ONLY, "--cov", "--cov-report=")
 
     result.assert_outcomes(passed=5, warnings=0)
     assert "Wasm coverage collected from 0 tests" in result.stdout.str()

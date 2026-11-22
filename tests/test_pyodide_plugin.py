@@ -88,6 +88,7 @@ run_path(str(path))['decide']({take_branch!r})
     contexts = data.contexts_by_lineno(filename)
     assert contexts[3] == ["test_guest.py::test_guest[node-take]"]
     assert contexts[4] == ["test_guest.py::test_guest[node-skip]"]
+    data.close(force=True)
     report = pytester.path / "htmlcov" / "index.html"
     assert "decision.py" in report.read_text(encoding="utf-8")
 
@@ -163,6 +164,7 @@ def test_host():
             "test_guest.py::test_guest[node]"
         ]
         assert source.name in report
+    data.close(force=True)
 
 
 def test_empty_pyodide_coverage_is_reported(
@@ -190,6 +192,7 @@ def test_guest(selenium_standalone):
     data = CoverageData(basename=str(pytester.path / ".coverage"))
     data.read()
     assert data.measured_files() == {str(pytester.path / "test_guest.py")}
+    data.close(force=True)
 
 
 def test_custom_launcher_maps_source_while_ignoring_empty_alias_groups(
@@ -246,6 +249,7 @@ run_path(str(path))['decide'](True)
     assert data.contexts_by_lineno(str(program))[3] == [
         "test_guest.py::test_guest[node]"
     ]
+    data.close(force=True)
 
 
 def test_explicit_pyodide_context_works_with_and_without_automatic_fixture(
@@ -345,6 +349,7 @@ def test_rejects_invalid_snapshot(selenium_standalone_noload, wasm_coverage):
     contexts = data.contexts_by_lineno(str(program))
     assert contexts[3] == ["test_guest.py::test_existing_scope[node]"]
     assert contexts[4] == ["test_guest.py::test_custom_scope[node]"]
+    data.close(force=True)
     assert "decision.py" in (pytester.path / "htmlcov/index.html").read_text(
         encoding="utf-8"
     )
@@ -374,5 +379,6 @@ def test_guest(selenium_standalone):
     data = CoverageData(basename=str(shard))
     data.read()
     assert any(path.endswith("test_guest.py") for path in data.measured_files())
+    data.close(force=True)
     assert not (pytester.path / ".coverage").exists()
     assert "Wasm coverage" not in result.stdout.str()

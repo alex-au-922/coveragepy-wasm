@@ -96,6 +96,7 @@ def assert_native_report(project: Path) -> None:
     report.json_report(outfile=str(json_path))
     html_dir = project / "htmlcov"
     report.html_report(directory=str(html_dir), show_contexts=True)
+    report.get_data().close(force=True)
     assert "decision.py" in (html_dir / "index.html").read_text(encoding="utf-8")
     files = json.loads(json_path.read_text(encoding="utf-8"))["files"]
     ((filename, entry),) = files.items()
