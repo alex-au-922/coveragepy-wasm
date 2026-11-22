@@ -134,7 +134,7 @@ jobs:
             dist/*.tar.gz
 
       - name: Keep package and example coverage reports
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && hashFiles('htmlcov/index.html') != '' }}
         uses: actions/upload-artifact@v7
         with:
           name: coverage-wasm-reports

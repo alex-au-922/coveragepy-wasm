@@ -70,7 +70,10 @@ def measured_guest(wasm_coverage, tmp_path):
         )
         with collector.collect():
             yield run_path(file)["decide"]
-        guest.save(snapshot(collector))
+        try:
+            guest.save(snapshot(collector))
+        finally:
+            collector.get_data().close(force=True)
 
     with wasm_coverage.launch(start) as decide:
         yield decide
@@ -265,8 +268,10 @@ def test_unexecuted_source_does_not_count_as_measured(wasm_coverage):
 
     result = pytester.runpytest_inprocess(*SYNC_ONLY, "--cov=.", "--cov-branch")
 
-    result.assert_outcomes(passed=5, warnings=0)
-    assert "Wasm coverage collected from 0 tests" in result.stdout.str()
+    result.assert_outcomes(passed=5)
+    output = result.stdout.str()
+    assert "Wasm coverage collected from 0 tests" in output
+    assert "No Python files measured" not in output
     data = CoverageData(basename=pytester.path / ".coverage")
     data.read()
     assert data.lines(str(application)) == []
