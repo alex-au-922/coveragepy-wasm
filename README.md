@@ -27,9 +27,10 @@ If you have a local checkout, add its source directory directly.
 uv add --dev /path/to/coverage-wasm
 ```
 
-After publication on PyPI, the install command will be
-`uv add --dev coverage-wasm` for a final release. To select the release
-candidate explicitly, use `uv add --dev "coverage-wasm==0.2.0rc1"`.
+After publication on PyPI, install a final release with
+`uv add --dev coverage-wasm`. For a release candidate, download the wheel
+from the tagged GitHub Actions run and install it with
+`uv add --dev ./coverage_wasm-0.2.0rc1-py3-none-any.whl`.
 
 Request the `wasm_coverage` pytest fixture and open a target with
 `with wasm_coverage(target) as runtime:`. Each target yields its native
@@ -300,16 +301,22 @@ It tests the built wheel on the host matrix and in all three runtime examples.
 The `coverage-wasm-reports` artifact includes `htmlcov/index.html` for coverage
 of the package's own test suite and separate HTML reports for example apps.
 
-For a release, set the package version in `pyproject.toml`, run `uv lock`,
-and update the examples' matching wheel references. Tag the verified commit
-with the same version prefixed by `v`. Use `v0.2.0rc1` for the release candidate and
-`v0.2.0` for the final release. Pushing a tag runs CI. Publishing a GitHub
-Release for that tag runs [the PyPI workflow](.github/workflows/release.yml).
-Mark the GitHub Release as a prerelease for an RC. The workflow verifies the
-tag and release type, then uploads the exact wheel and source distribution
-that passed CI.
+For a release, set the Python package version in `pyproject.toml`, run
+`uv lock`, and update the examples' matching wheel references. Git tags
+use SemVer with a `v` prefix. Python artifacts use PEP 440 versions.
 
-Before the first upload, register a [pending Trusted Publisher](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/)
+| Release | Git tag | Python version | Distribution |
+| --- | --- | --- | --- |
+| Candidate | `v0.2.0-rc.1` | `0.2.0rc1` | GitHub Actions artifacts |
+| Final | `v0.2.0` | `0.2.0` | PyPI after a published GitHub Release |
+
+Pushing either tag runs CI and saves the tested wheel and source distribution
+as GitHub Actions artifacts. A GitHub prerelease can use the RC tag. The
+[PyPI workflow](.github/workflows/release.yml) uploads distributions only
+for a published final GitHub Release, after verifying its tag, package
+version, and test results.
+
+Before the first final release, register a [pending Trusted Publisher](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/)
 on PyPI for project `coverage-wasm`, owner `alex-au-922`, repository
 `coverage-wasm`, and workflow `release.yml`. Leave the environment field
 empty for this workflow.

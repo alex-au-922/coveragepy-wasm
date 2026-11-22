@@ -12,6 +12,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   publish:
+    if: github.event.release.prerelease == false
     needs: verify
     runs-on: ubuntu-latest
     permissions:

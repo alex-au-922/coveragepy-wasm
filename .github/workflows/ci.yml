@@ -25,23 +25,32 @@ jobs:
           node-version: "24.18.0"
           package-manager-cache: false
 
-      - name: Check the release tag
-        if: github.event_name == 'release'
+      - name: Check the version tag
+        if: github.ref_type == 'tag'
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.ref_name }}
           RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
           uv run --locked --no-default-groups python - <<'PY'
           import os
+          import re
           import tomllib
           from pathlib import Path
 
           from packaging.version import Version
 
           version = Version(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])
-          if os.environ["RELEASE_TAG"] != f"v{version}":
-              raise SystemExit(f"The release tag must be v{version}")
-          if version.is_prerelease != (os.environ["RELEASE_PRERELEASE"] == "true"):
+          match = re.fullmatch(r"(\d+\.\d+\.\d+)(?:rc(\d+))?", str(version))
+          if match is None:
+              raise SystemExit("Use a major.minor.patch version or a release candidate")
+          base, candidate = match.groups()
+          tag = f"v{base}-rc.{candidate}" if candidate is not None else f"v{base}"
+          if os.environ["RELEASE_TAG"] != tag:
+              raise SystemExit(f"The release tag must be {tag}")
+          if os.environ["EVENT_NAME"] == "release" and version.is_prerelease != (
+              os.environ["RELEASE_PRERELEASE"] == "true"
+          ):
               raise SystemExit("The GitHub prerelease flag must match the package version")
           PY
 
