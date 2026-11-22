@@ -8,14 +8,17 @@ WASI runtime and the local `coverage-wasm` wheel.
 ```sh
 uv build --wheel
 cd examples/wasi
-uv run pytest
+uv run pytest --cov --cov-report=html
 ```
 
 Open `output/htmlcov/index.html`. Both shipping branches are covered. The
-report maps guest `/app/shipping.py` to `src/shipping.py` and shows the pytest
-case for each branch.
+report uses the fixture's grant to map guest `/app/shipping.py` to
+`src/shipping.py` and shows the pytest case for each branch.
 
-The [fixture](tests/conftest.py) stages the pure-Python Coverage.py package,
-grants the guest a writable output directory, and passes its `.coverage` file
-to `wasm_coverage.add_file`. The [test](tests/test_quote_wasi.py) checks the
-shipping amounts.
+The [fixture](tests/conftest.py) opens a `targets.wasi()` target with
+`wasm_coverage(target)`. It decides which application
+files the guest may see. With `--cov`, the plugin stages Coverage.py, adds a
+temporary output grant, and collects the guest's `.coverage` file. The
+[test](tests/test_quote_wasi.py) checks the shipping amounts.
+
+To run the same cases with the normal WASI runner, use `uv run pytest`.

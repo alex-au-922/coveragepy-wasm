@@ -1,4 +1,5 @@
 .coverage*
+.nox/
 .pytest_cache/
 .ruff_cache/
 .venv/

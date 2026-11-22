@@ -36,8 +36,11 @@ def test_installed_plugin_collects_existing_pyodide_fixtures(
     pytester.makepyprojecttoml(
         PYTEST_OPTIONS
         + """
+addopts = "--cov --cov-report=html"
+
 [tool.coverage.run]
 branch = true
+include = ["*/decision.py"]
 
 [tool.coverage.paths]
 source = [".", "/project"]
@@ -68,10 +71,17 @@ run_path(str(path))['decide']({take_branch!r})
 '''
     )
 
-    result = pytester.runpytest_subprocess(*node_options, "-q")
+    result = pytester.runpytest_subprocess(*node_options, "-v")
     result.assert_outcomes(passed=2)
+    output = result.stdout.str()
+    assert "Wasm coverage enabled" in output
+    assert (
+        "Wasm coverage collected from 2 tests\n"
+        "  test_guest.py::test_guest[node-skip]\n"
+        "  test_guest.py::test_guest[node-take]"
+    ) in output
 
-    data = CoverageData(basename=str(pytester.path / ".coverage-wasm"))
+    data = CoverageData(basename=str(pytester.path / ".coverage"))
     data.read()
     (filename,) = data.measured_files()
     assert Path(filename).resolve() == program.resolve()
@@ -82,7 +92,6 @@ run_path(str(path))['decide']({take_branch!r})
     assert "decision.py" in report.read_text(encoding="utf-8")
 
 
-@pytest.mark.skipif(find_spec("pytest_cov") is None, reason="Requires pytest-cov")
 def test_pytest_cov_maps_source_directory_into_pyodide(
     pytester: pytest.Pytester, node_options: tuple[str, str]
 ) -> None:
@@ -121,7 +130,12 @@ def test_host():
     )
 
     result = pytester.runpytest_subprocess(
-        *node_options, "--cov=src", "--cov-branch", "--cov-report=html", "-q"
+        *node_options,
+        "--cov=src",
+        "--cov-branch",
+        "--cov-fail-under=100",
+        "--cov-report=html",
+        "-q",
     )
     result.assert_outcomes(passed=2)
     assert "No data was collected" not in result.stdout.str()
@@ -144,7 +158,7 @@ def test_empty_pyodide_coverage_is_reported(
         PYTEST_OPTIONS
         + """
 [tool.coverage.run]
-include = ["*/decision.py"]
+include = ["*/test_guest.py"]
 """
     )
     pytester.makepyfile(
@@ -154,15 +168,96 @@ def test_guest(selenium_standalone):
 """
     )
 
-    result = pytester.runpytest_subprocess(*node_options, "-q")
+    result = pytester.runpytest_subprocess(*node_options, "--cov", "-q")
     result.assert_outcomes(passed=1, warnings=1)
     assert "No Python files" in result.stdout.str()
     assert "test_guest.py::test_guest[node]" in result.stdout.str()
-    assert not (pytester.path / ".coverage-wasm").exists()
+    assert "Wasm coverage collected from 0 tests" in result.stdout.str()
+    data = CoverageData(basename=str(pytester.path / ".coverage"))
+    data.read()
+    assert data.measured_files() == {str(pytester.path / "test_guest.py")}
 
 
-def test_existing_pyodide_coverage_decorator_can_opt_out(
+def test_explicit_pyodide_context_works_with_and_without_automatic_fixture(
     pytester: pytest.Pytester, node_options: tuple[str, str]
+) -> None:
+    pytester.makepyprojecttoml(
+        PYTEST_OPTIONS
+        + """
+[tool.coverage.run]
+branch = true
+include = ["*/decision.py"]
+
+[tool.coverage.paths]
+source = [".", "/project"]
+"""
+    )
+    program = pytester.makepyfile(decision=DECISION)
+    pytester.makepyfile(
+        test_guest='''\
+from pathlib import Path
+
+import pytest
+from coverage_wasm import targets
+
+SOURCE = Path("decision.py").read_text(encoding="utf-8")
+
+
+def decide(runner, take_branch):
+    return runner.run(f"""
+from pathlib import Path
+from runpy import run_path
+
+module = Path('/project/decision.py')
+module.parent.mkdir(exist_ok=True)
+module.write_text({SOURCE!r}, encoding='utf-8')
+run_path(str(module))['decide']({take_branch!r})
+""")
+
+
+def test_existing_scope(selenium_standalone, wasm_coverage):
+    assert decide(selenium_standalone, True) == "taken"
+    with wasm_coverage(targets.pyodide(selenium_standalone)) as runner:
+        assert runner is selenium_standalone
+
+
+def test_custom_scope(selenium_standalone_noload, wasm_coverage):
+    selenium_standalone_noload.load_pyodide()
+    selenium_standalone_noload.initialize_pyodide()
+    with wasm_coverage(targets.pyodide(selenium_standalone_noload)) as runner:
+        assert decide(runner, False) == "unused"
+
+    assert runner.run("from coverage import Coverage; Coverage.current() is None")
+
+
+@pytest.mark.no_cover
+def test_coverage_opt_out(selenium_standalone, wasm_coverage):
+    with wasm_coverage(targets.pyodide(selenium_standalone)) as runner:
+        assert decide(runner, True) == "taken"
+'''
+    )
+
+    result = pytester.runpytest_subprocess(
+        *node_options, "--cov", "--cov-report=html", "-v"
+    )
+    result.assert_outcomes(passed=3)
+    assert "No Python files" not in result.stdout.str()
+    assert "Wasm coverage collected from 2 tests" in result.stdout.str()
+    data = CoverageData(basename=str(pytester.path / ".coverage"))
+    data.read()
+    contexts = data.contexts_by_lineno(str(program))
+    assert contexts[3] == ["test_guest.py::test_existing_scope[node]"]
+    assert contexts[4] == ["test_guest.py::test_custom_scope[node]"]
+    assert "decision.py" in (pytester.path / "htmlcov/index.html").read_text(
+        encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize(
+    "options", [[], ["--cov", "--no-cov"]], ids=["plain", "no-cov"]
+)
+def test_existing_pyodide_coverage_decorator_can_opt_out(
+    pytester: pytest.Pytester, node_options: tuple[str, str], options: list[str]
 ) -> None:
     pytester.makepyprojecttoml(PYTEST_OPTIONS)
     pytester.makepyfile(
@@ -176,10 +271,11 @@ def test_guest(selenium_standalone):
 """
     )
 
-    result = pytester.runpytest_subprocess(*node_options, "--no-wasm-coverage", "-q")
+    result = pytester.runpytest_subprocess(*node_options, *options, "-q")
     result.assert_outcomes(passed=1)
     (shard,) = pytester.path.glob(".coverage.emscripten.*")
     data = CoverageData(basename=str(shard))
     data.read()
     assert any(path.endswith("test_guest.py") for path in data.measured_files())
-    assert not (pytester.path / ".coverage-wasm").exists()
+    assert not (pytester.path / ".coverage").exists()
+    assert "Wasm coverage" not in result.stdout.str()

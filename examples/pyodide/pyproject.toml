@@ -5,14 +5,13 @@ requires-python = ">=3.11"
 
 [dependency-groups]
 dev = [
-    "coverage-wasm==0.2.0",
+    "coverage-wasm==0.2.0rc1",
     "pytest==9.2.0",
-    "pytest-cov==7.1.0",
     "pytest-pyodide==0.59.4",
 ]
 
 [tool.uv.sources]
-coverage-wasm = { path = "../../dist/coverage_wasm-0.2.0-py3-none-any.whl" }
+coverage-wasm = { path = "../../dist/coverage_wasm-0.2.0rc1-py3-none-any.whl" }
 
 [tool.pytest.ini_options]
 addopts = "--runtime=node --dist-dir=.pyodide/node_modules/pyodide"
@@ -23,7 +22,7 @@ branch = true
 include = ["*/shipping.py"]
 
 [tool.coverage.paths]
-shipping = [".", "/app"]
+shipping = [".", "/home/pyodide"]
 
 [tool.coverage.html]
 show_contexts = true

@@ -3,6 +3,7 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
@@ -24,10 +25,33 @@ jobs:
           node-version: "24.18.0"
           package-manager-cache: false
 
+      - name: Check the release tag
+        if: github.event_name == 'release'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          uv run --locked --no-default-groups python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          from packaging.version import Version
+
+          version = Version(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])
+          if os.environ["RELEASE_TAG"] != f"v{version}":
+              raise SystemExit(f"The release tag must be v{version}")
+          if version.is_prerelease != (os.environ["RELEASE_PRERELEASE"] == "true"):
+              raise SystemExit("The GitHub prerelease flag must match the package version")
+          PY
+
       - name: Build and check distributions
         run: |
-          uv build
+          uv build --no-sources
           uvx twine check --strict dist/*.whl dist/*.tar.gz
+
+      - name: Test the wheel on supported host Python versions
+        run: uvx nox==2026.10.20 --error-on-missing-interpreters -s tests -- dist/*.whl
 
       - name: Install Pyodide
         working-directory: examples/pyodide
@@ -35,52 +59,62 @@ jobs:
 
       - name: Check source and run the runtime test suite
         run: |
-          uv run --locked --group wasm-test ruff format --check src tests
-          uv run --locked --group wasm-test ruff check src tests
+          uv run --locked --group wasm-test ruff format --check src tests noxfile.py
+          uv run --locked --group wasm-test ruff check src tests noxfile.py
           uv run --locked --group wasm-test pyright
           coverage_version=$(uv run --locked --group wasm-test python -c 'import coverage; print(coverage.__version__)')
           uvx --from pip pip download --only-binary=:all: --platform any --no-deps \
             --dest "$RUNNER_TEMP" "coverage==$coverage_version"
           WASM_COVERAGE_PURE_WHEEL="$RUNNER_TEMP/coverage-$coverage_version-py3-none-any.whl" \
-            uv run --locked --group wasm-test pytest --no-wasm-coverage --runtime=node \
+            uv run --locked --group wasm-test coverage run --data-file=.coverage-package \
+              --branch --source=coverage_wasm -m pytest --runtime=node \
               --dist-dir=examples/pyodide/.pyodide/node_modules/pyodide
+          uv run --locked --group wasm-test coverage report --data-file=.coverage-package -m
+          uv run --locked --group wasm-test coverage html --data-file=.coverage-package
 
       - name: Test the minimum Python and pytest with the wheel
         working-directory: examples/pyodide
         run: |
           uv run --no-project --python 3.11 --with ../../dist/coverage_wasm-*.whl \
             --with pytest==8.4.0 --with pytest-pyodide==0.59.4 \
-            pytest
+            pytest --cov --cov-report=html
           test -s htmlcov/index.html
 
       - name: Test the Pyodide example with the wheel
         working-directory: examples/pyodide
         run: |
-          uv run pytest
+          uv run pytest --cov --cov-report=html -k free_at_threshold
           uv run pytest --cov --cov-report=html:htmlcov-merged
           test -s htmlcov-merged/index.html
 
       - name: Test the WASI example with the wheel
         working-directory: examples/wasi
         run: |
-          uv run pytest
+          uv run pytest --cov --cov-report=html
           test -s output/htmlcov/index.html
 
       - name: Test the Workerd example with the wheel
         working-directory: examples/workerd
         run: |
-          npm install --no-audit --no-fund
-          uv run pytest
+          uv run pytest --cov=src --cov-report=html --cov-fail-under=100
           test -s htmlcov/index.html
 
-      - name: Keep the tested distributions and reports
+      - name: Keep the tested distributions
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-wasm-preview
+          name: coverage-wasm-distributions
           if-no-files-found: error
           path: |
             dist/*.whl
             dist/*.tar.gz
+
+      - name: Keep package and example coverage reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-wasm-reports
+          if-no-files-found: error
+          path: |
+            htmlcov/
             examples/pyodide/htmlcov/
             examples/pyodide/htmlcov-merged/
             examples/wasi/output/htmlcov/

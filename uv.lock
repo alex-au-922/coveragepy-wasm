@@ -195,18 +195,18 @@ wheels = [
 
 [[package]]
 name = "coverage-wasm"
-version = "0.2.0"
+version = "0.2.0rc1"
 source = { editable = "." }
 dependencies = [
     { name = "coverage" },
     { name = "pytest" },
+    { name = "pytest-cov" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "pyright" },
     { name = "pytest" },
-    { name = "pytest-cov" },
     { name = "ruff" },
 ]
 wasm-test = [
@@ -218,13 +218,13 @@ wasm-test = [
 requires-dist = [
     { name = "coverage", specifier = "==7.17.3" },
     { name = "pytest", specifier = ">=8.4" },
+    { name = "pytest-cov", specifier = "==7.1.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "pyright", specifier = ">=1.1.395" },
     { name = "pytest", specifier = ">=9" },
-    { name = "pytest-cov", specifier = "==7.1.0" },
     { name = "ruff", specifier = ">=0.11" },
 ]
 wasm-test = [

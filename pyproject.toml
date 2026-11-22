@@ -1,10 +1,12 @@
 [project]
 name = "coverage-wasm"
-version = "0.2.0"
+version = "0.2.0rc1"
 description = "Bring Python coverage data from WebAssembly runtimes to Coverage.py"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
-dependencies = ["coverage==7.17.3", "pytest>=8.4"]
+dependencies = ["coverage==7.17.3", "pytest>=8.4", "pytest-cov==7.1.0"]
 keywords = ["coverage", "pytest", "webassembly", "pyodide"]
 classifiers = ["Development Status :: 3 - Alpha", "Framework :: Pytest"]
 
@@ -12,7 +14,7 @@ classifiers = ["Development Status :: 3 - Alpha", "Framework :: Pytest"]
 coverage-wasm = "coverage_wasm.pytest_plugin"
 
 [dependency-groups]
-dev = ["pytest>=9", "pytest-cov==7.1.0", "ruff>=0.11", "pyright>=1.1.395"]
+dev = ["pytest>=9", "ruff>=0.11", "pyright>=1.1.395"]
 wasm-test = ["pytest-pyodide==0.59.4", "wasi-python==0.1.5"]
 
 [build-system]
@@ -22,6 +24,7 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 source-include = [
     "CHANGELOG.md",
+    "noxfile.py",
     "examples/README.md",
     "examples/*/README.md",
     "examples/*/pyproject.toml",
@@ -31,6 +34,7 @@ source-include = [
     "examples/workerd/*.py",
     "examples/workerd/src/*.py",
     "examples/workerd/package.json",
+    "examples/workerd/package-lock.json",
     "examples/workerd/wrangler.toml",
 ]
 
