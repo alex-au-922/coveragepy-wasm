@@ -16,113 +16,14 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: mise install
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
-          version: "0.13.4"
-          python-version: "3.14"
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24.18.0"
-          package-manager-cache: false
-
-      - name: Check the version tag
-        if: github.ref_type == 'tag'
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          RELEASE_TAG: ${{ github.ref_name }}
-          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
-        run: |
-          uv run --locked --no-default-groups python - <<'PY'
-          import os
-          import re
-          import tomllib
-          from pathlib import Path
-
-          from packaging.version import Version
-
-          version = Version(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])
-          match = re.fullmatch(r"(\d+\.\d+\.\d+)(?:rc(\d+))?", str(version))
-          if match is None:
-              raise SystemExit("Use a major.minor.patch version or a release candidate")
-          base, candidate = match.groups()
-          tag = f"v{base}-rc.{candidate}" if candidate is not None else f"v{base}"
-          if os.environ["RELEASE_TAG"] != tag:
-              raise SystemExit(f"The release tag must be {tag}")
-          if os.environ["EVENT_NAME"] == "release" and version.is_prerelease != (
-              os.environ["RELEASE_PRERELEASE"] == "true"
-          ):
-              raise SystemExit("The GitHub prerelease flag must match the package version")
-          PY
-
-      - name: Build and check distributions
-        run: |
-          uv build --no-sources
-          uvx twine check --strict dist/*.whl dist/*.tar.gz
-
-      - name: Test the wheel on supported host Python versions
-        run: uvx nox==2026.10.20 --error-on-missing-interpreters -s tests -- dist/*.whl
-
-      - name: Install Pyodide
-        working-directory: examples/pyodide
-        run: npm install --prefix .pyodide --no-save --no-package-lock pyodide@314.0.8
-
-      - name: Check source and exercise the installed wheel end to end
-        run: |
-          uv run --locked --group wasm-test ruff format --check src tests noxfile.py
-          uv run --locked --group wasm-test ruff check src tests noxfile.py
-          uv run --locked --group wasm-test pyright
-          coverage_version=$(uv run --locked --group wasm-test python -c 'import coverage; print(coverage.__version__)')
-          uvx --from pip pip download --only-binary=:all: --platform any --no-deps \
-            --dest "$RUNNER_TEMP" "coverage==$coverage_version"
-          uv pip install --reinstall --no-deps dist/*.whl
-          audit=$(mktemp -d "$RUNNER_TEMP/coverage-wasm.XXXXXX")
-          test_status=0
-          PYTHONPATH="$PWD/tests/audit" \
-            WASM_PACKAGE_COVERAGE="$audit/.coverage" \
-            WASM_COVERAGE_PURE_WHEEL="$RUNNER_TEMP/coverage-$coverage_version-py3-none-any.whl" \
-            uv run --no-sync pytest --runtime=node \
-              -o asyncio_default_fixture_loop_scope=function \
-              --junitxml="$audit/tests.xml" \
-              --dist-dir=examples/pyodide/.pyodide/node_modules/pyodide || test_status=$?
-          uv run --no-sync coverage combine --rcfile=tests/audit/coverage.ini --data-file="$audit/.coverage"
-          uv run --no-sync coverage html --data-file="$audit/.coverage"
-          if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
-          uv run --no-sync python - "$audit/tests.xml" <<'PY'
-          import sys
-          from xml.etree import ElementTree
-
-          suite = ElementTree.parse(sys.argv[1])
-          if suite.findall(".//testcase/skipped"):
-              raise SystemExit("The end-to-end coverage job requires every runtime test to run")
-          PY
-          uv run --no-sync coverage report --data-file="$audit/.coverage" --show-missing --fail-under=100
-
-      - name: Test the minimum Python and pytest with the wheel
-        working-directory: examples/pyodide
-        run: |
-          uv run --no-project --python 3.11 --with ../../dist/coverage_wasm-*.whl \
-            --with pytest==8.4.0 --with pytest-pyodide==0.59.4 \
-            pytest --cov --cov-report=html
-          test -s htmlcov/index.html
-
-      - name: Test the Pyodide example with the wheel
-        working-directory: examples/pyodide
-        run: |
-          uv run pytest --cov --cov-report=html -k free_at_threshold
-          uv run pytest --cov --cov-report=html:htmlcov-merged
-          test -s htmlcov-merged/index.html
-
-      - name: Test the WASI example with the wheel
-        working-directory: examples/wasi
-        run: |
-          uv run pytest --cov --cov-report=html
-          test -s output/htmlcov/index.html
-
-      - name: Test the Workerd example with the wheel
-        working-directory: examples/workerd
-        run: |
-          uv run pytest --cov=src --cov-report=html --cov-fail-under=100
-          test -s htmlcov/index.html
+          version: "2026.9.1"
+          install: true
+          cache: false
+      - run: mise build
+      - run: mise test
 
       - name: Keep the tested distributions
         uses: actions/upload-artifact@v7

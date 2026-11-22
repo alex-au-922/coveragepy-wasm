@@ -290,20 +290,22 @@ use `pytest -n 0` for the Wasm run.
 
 ## Development and releases
 
-Build the wheel and source distribution locally with `uv build --no-sources`.
-Run the installed wheel through Nox on Python 3.11 through 3.15. The 3.11
-session also checks the project's minimum pytest version, 8.4.
+Install [mise](https://mise.jdx.dev/getting-started.html) and start Docker,
+then run these commands from the repository root.
 
 ```sh
-uvx nox==2026.10.20 --error-on-missing-interpreters -s tests -- dist/coverage_wasm-0.2.0rc1-py3-none-any.whl
+mise install
+mise build
+mise test
 ```
 
-The [CI workflow](.github/workflows/coverage.yml) runs on pushes and pull requests.
-It installs the built wheel and exercises it in Pyodide, WASI, and Workerd,
-including Workerd over HTTP through Testcontainers. The coverage badge
-follows the CI gate, which requires 100% Python line and branch coverage
-of the package. The `coverage-wasm-reports` artifact contains the package
-report at `htmlcov/index.html` and separate HTML reports for example apps.
+The [CI workflow](.github/workflows/coverage.yml) runs the same commands on
+pushes and pull requests. The test task checks the installed wheel on Python
+3.11 through 3.15, including pytest 8.4 on Python 3.11. It also exercises the
+wheel in Pyodide, WASI, and Workerd, with HTTP requests to Workerd through
+Testcontainers. The coverage badge follows the 100% package line and branch
+coverage gate. Open `htmlcov/index.html` after a local run, or download the
+`coverage-wasm-reports` artifact for the package and example HTML reports.
 
 For a release, set the Python package version in `pyproject.toml`, run
 `uv lock`, and update the examples' matching wheel references. Git tags

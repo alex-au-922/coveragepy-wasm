@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+#MISE description="Test the built wheel end to end and require full package coverage"
+set -euo pipefail
+
+version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+wheel="$PWD/dist/coverage_wasm-$version-py3-none-any.whl"
+if [[ ! -f $wheel ]]; then
+    echo 'Run mise build to build the wheel before mise test.' >&2
+    exit 1
+fi
+
+uv tool run nox==2026.10.20 --error-on-missing-interpreters -s tests -- "$wheel"
+npm install --prefix examples/pyodide/.pyodide --no-save --no-package-lock pyodide@314.0.8
+
+uv sync --locked --group wasm-test
+uv run --no-sync ruff format --check src tests noxfile.py
+uv run --no-sync ruff check src tests noxfile.py
+uv run --no-sync pyright
+
+audit=$(mktemp -d "${TMPDIR:-/tmp}/coverage-wasm.XXXXXX")
+trap 'rm -rf -- "$audit"' EXIT
+coverage_version=$(uv run --no-sync python -c 'import coverage; print(coverage.__version__)')
+uv tool run --from pip pip download --only-binary=:all: --platform any --no-deps \
+    --dest "$audit" "coverage==$coverage_version"
+uv run --no-sync uv pip install --reinstall --no-deps "$wheel"
+
+test_status=0
+PYTHONPATH="$PWD/tests/audit" \
+    WASM_PACKAGE_COVERAGE="$audit/.coverage" \
+    WASM_COVERAGE_PURE_WHEEL="$audit/coverage-$coverage_version-py3-none-any.whl" \
+    uv run --no-sync pytest --runtime=node \
+        -o asyncio_default_fixture_loop_scope=function \
+        --junitxml="$audit/tests.xml" \
+        --dist-dir=examples/pyodide/.pyodide/node_modules/pyodide || test_status=$?
+uv run --no-sync coverage combine --rcfile=tests/audit/coverage.ini --data-file="$audit/.coverage"
+uv run --no-sync coverage html --data-file="$audit/.coverage"
+if [[ $test_status != 0 ]]; then exit "$test_status"; fi
+uv run --no-sync python - "$audit/tests.xml" <<'PY'
+import sys
+from xml.etree import ElementTree
+
+suite = ElementTree.parse(sys.argv[1])
+if suite.findall(".//testcase/skipped"):
+    raise SystemExit("The end-to-end coverage job requires every runtime test to run")
+PY
+uv run --no-sync coverage report --data-file="$audit/.coverage" --show-missing --fail-under=100
+
+(
+    cd examples/pyodide
+    uv run --no-project --python 3.11 --with "$wheel" \
+        --with pytest==8.4.0 --with pytest-pyodide==0.59.4 \
+        pytest --cov --cov-report=html
+    test -s htmlcov/index.html
+    uv run pytest --cov --cov-report=html -k free_at_threshold
+    uv run pytest --cov --cov-report=html:htmlcov-merged
+    test -s htmlcov-merged/index.html
+)
+(
+    cd examples/wasi
+    uv run pytest --cov --cov-report=html
+    test -s output/htmlcov/index.html
+)
+(
+    cd examples/workerd
+    uv run pytest --cov=src --cov-report=html --cov-fail-under=100
+    test -s htmlcov/index.html
+)
