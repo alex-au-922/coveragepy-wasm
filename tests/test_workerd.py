@@ -351,8 +351,8 @@ def test_routes(worker_url):
         assert response.read() == b"Not found"
 """
     )
-    result = pytester.runpytest_inprocess(
-        "--cov=src", "--cov-report=html", "--cov-fail-under=100"
+    result = pytester.runpytest_subprocess(
+        "-p", "no:asyncio", "--cov=src", "--cov-report=html", "--cov-fail-under=100"
     )
     result.assert_outcomes(passed=1)
     assert "Wasm coverage collected from 1 test" in result.stdout.str()

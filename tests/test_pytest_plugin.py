@@ -107,6 +107,7 @@ def test_installed_plugin_reports_wasm_with_configured_paths_and_context(
     assert arcs is not None
     assert (2, 3) in arcs
     assert (2, 4) not in arcs
+    data.close(force=True)
 
 
 def test_pytest_cov_applies_configured_fail_under_to_guest_data(
@@ -208,6 +209,7 @@ def test_guest_skips_no_cover_fixture(no_cover, wasm_coverage):
     data.read()
     assert data.lines(str(host_source)) == [1]
     assert data.contexts_by_lineno(str(source))[3] == ["test_guest.py::test_guest"]
+    data.close(force=True)
     assert "Wasm coverage collected from 1 test" in result.stdout.str()
 
 
@@ -268,6 +270,7 @@ def test_unexecuted_source_does_not_count_as_measured(wasm_coverage):
     data = CoverageData(basename=pytester.path / ".coverage")
     data.read()
     assert data.lines(str(application)) == []
+    data.close(force=True)
 
 
 def test_collect_only_does_not_enable_wasm_coverage(pytester: pytest.Pytester) -> None:

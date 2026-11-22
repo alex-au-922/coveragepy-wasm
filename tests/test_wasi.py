@@ -73,10 +73,9 @@ def test_shipping(wasm_coverage):
 """
     )
 
-    if mode == "plain":
-        result = pytester.runpytest_inprocess()
-    else:
-        result = pytester.runpytest_subprocess("--cov=src", "--cov-report=html")
+    options = [] if mode == "plain" else ["--cov=src", "--cov-report=html"]
+    # Isolate pytest's signal handlers from the outer process's WASI runtime.
+    result = pytester.runpytest_subprocess("-p", "no:asyncio", *options)
 
     result.assert_outcomes(passed=1)
     reports = pytester.path / "reports"
@@ -96,6 +95,7 @@ def test_shipping(wasm_coverage):
     assert arcs is not None
     assert (3, 4) in arcs
     assert (3, 6) not in arcs
+    data.close(force=True)
 
 
 def test_wasi_coverage_uses_the_deepest_mount_and_the_host_root(
@@ -128,6 +128,7 @@ def test_wasi_coverage_uses_the_deepest_mount_and_the_host_root(
     data = CoverageData(basename=str(shard))
     data.read()
     assert data.measured_files() == {str(entry.resolve()), str(fee.resolve())}
+    data.close(force=True)
 
 
 @pytest.mark.parametrize("has_aliases", [False, True], ids=["native", "unmapped"])
@@ -151,6 +152,7 @@ def test_wasi_preserves_source_names_without_matching_aliases(
     data = CoverageData(basename=str(shard))
     data.read()
     assert data.lines("/app/main.py") == [1]
+    data.close(force=True)
 
 
 @pytest.mark.parametrize("argv", [[], [""], ["-c", "pass"]])
