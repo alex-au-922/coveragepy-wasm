@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   verify:
-    uses: ./.github/workflows/ci.yml
+    uses: ./.github/workflows/coverage.yml
 
   publish:
     if: github.event.release.prerelease == false

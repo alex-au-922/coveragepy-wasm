@@ -1,6 +1,6 @@
 # coverage-wasm
 
-[![100% end-to-end coverage gate](https://github.com/alex-au-922/coverage-wasm/actions/workflows/ci.yml/badge.svg?branch=codex%2Fpypi-rc1&event=push)](https://github.com/alex-au-922/coverage-wasm/actions/workflows/ci.yml?query=branch%3Acodex%2Fpypi-rc1)
+[![100% end-to-end coverage gate](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml/badge.svg?branch=codex%2Fpypi-rc1&event=push)](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml?query=branch%3Acodex%2Fpypi-rc1)
 
 Collect Python line and branch coverage from WebAssembly in pytest.
 Measure Pyodide, local Python Workers, or CPython on WASI alongside your host
@@ -298,7 +298,7 @@ session also checks the project's minimum pytest version, 8.4.
 uvx nox==2026.10.20 --error-on-missing-interpreters -s tests -- dist/coverage_wasm-0.2.0rc1-py3-none-any.whl
 ```
 
-The [CI workflow](.github/workflows/ci.yml) runs on pushes and pull requests.
+The [CI workflow](.github/workflows/coverage.yml) runs on pushes and pull requests.
 It installs the built wheel and exercises it in Pyodide, WASI, and Workerd,
 including Workerd over HTTP through Testcontainers. The coverage badge
 follows the CI gate, which requires 100% Python line and branch coverage
