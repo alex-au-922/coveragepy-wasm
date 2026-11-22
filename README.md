@@ -1,5 +1,7 @@
 # coverage-wasm
 
+[![100% end-to-end coverage gate](https://github.com/alex-au-922/coverage-wasm/actions/workflows/ci.yml/badge.svg?branch=codex%2Fpypi-rc1&event=push)](https://github.com/alex-au-922/coverage-wasm/actions/workflows/ci.yml?query=branch%3Acodex%2Fpypi-rc1)
+
 Collect Python line and branch coverage from WebAssembly in pytest.
 Measure Pyodide, local Python Workers, or CPython on WASI alongside your host
 tests in the same pytest-cov report.
@@ -297,9 +299,11 @@ uvx nox==2026.10.20 --error-on-missing-interpreters -s tests -- dist/coverage_wa
 ```
 
 The [CI workflow](.github/workflows/ci.yml) runs on pushes and pull requests.
-It tests the built wheel on the host matrix and in all three runtime examples.
-The `coverage-wasm-reports` artifact includes `htmlcov/index.html` for coverage
-of the package's own test suite and separate HTML reports for example apps.
+It installs the built wheel and exercises it in Pyodide, WASI, and Workerd,
+including Workerd over HTTP through Testcontainers. The coverage badge
+follows the CI gate, which requires 100% Python line and branch coverage
+of the package. The `coverage-wasm-reports` artifact contains the package
+report at `htmlcov/index.html` and separate HTML reports for example apps.
 
 For a release, set the Python package version in `pyproject.toml`, run
 `uv lock`, and update the examples' matching wheel references. Git tags

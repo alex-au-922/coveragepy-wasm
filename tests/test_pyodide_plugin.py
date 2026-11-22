@@ -92,32 +92,42 @@ run_path(str(path))['decide']({take_branch!r})
     assert "decision.py" in report.read_text(encoding="utf-8")
 
 
-def test_pytest_cov_maps_source_directory_into_pyodide(
+def test_pytest_cov_maps_source_directories_and_modules_into_pyodide(
     pytester: pytest.Pytester, node_options: tuple[str, str]
 ) -> None:
     pytester.makepyprojecttoml(
         PYTEST_OPTIONS
         + """
 [tool.coverage.paths]
-source = ["src", "/app"]
+app = ["src/engine", "/app"]
+project = [".", "/checkout"]
+external = ["vendor", "/vendor"]
 """
     )
-    program = pytester.path / "src" / "decision.py"
-    program.parent.mkdir()
+    program = pytester.path / "src" / "engine" / "decision.py"
+    program.parent.mkdir(parents=True)
     program.write_text(DECISION, encoding="utf-8")
+    companion = pytester.makepyfile(companion=DECISION)
+    (pytester.path / "vendor").mkdir()
     pytester.makepyfile(
         test_guest='''\
 from pathlib import Path
 from runpy import run_path
 
+import companion
+
 
 def test_guest(selenium_standalone):
-    source = Path("src/decision.py").read_text()
-    assert selenium_standalone.run(f"""
+    for local, guest in (
+        ("src/engine/decision.py", "/app/decision.py"),
+        ("companion.py", "/checkout/companion.py"),
+    ):
+        source = Path(local).read_text()
+        assert selenium_standalone.run(f"""
 from pathlib import Path
 from runpy import run_path
 
-path = Path('/app/decision.py')
+path = Path({guest!r})
 path.parent.mkdir(exist_ok=True)
 path.write_text({source!r})
 run_path(str(path))['decide'](True)
@@ -125,13 +135,15 @@ run_path(str(path))['decide'](True)
 
 
 def test_host():
-    assert run_path("src/decision.py")["decide"](False) == "unused"
+    assert run_path("src/engine/decision.py")["decide"](False) == "unused"
+    assert companion.decide(False) == "unused"
 '''
     )
 
     result = pytester.runpytest_subprocess(
         *node_options,
         "--cov=src",
+        "--cov=companion",
         "--cov-branch",
         "--cov-fail-under=100",
         "--cov-report=html",
@@ -142,13 +154,15 @@ def test_host():
 
     data = CoverageData(basename=str(pytester.path / ".coverage"))
     data.read()
-    (filename,) = data.measured_files()
-    assert Path(filename).resolve() == program.resolve()
-    assert {(2, 3), (2, 4)} <= set(data.arcs(filename) or [])
-    assert data.contexts_by_lineno(filename)[3] == ["test_guest.py::test_guest[node]"]
-    assert "decision.py" in (pytester.path / "htmlcov/index.html").read_text(
-        encoding="utf-8"
-    )
+    files = {Path(filename).resolve(): filename for filename in data.measured_files()}
+    assert set(files) == {program.resolve(), companion.resolve()}
+    report = (pytester.path / "htmlcov/index.html").read_text(encoding="utf-8")
+    for source, filename in files.items():
+        assert {(2, 3), (2, 4)} <= set(data.arcs(filename) or [])
+        assert data.contexts_by_lineno(filename)[3] == [
+            "test_guest.py::test_guest[node]"
+        ]
+        assert source.name in report
 
 
 def test_empty_pyodide_coverage_is_reported(
@@ -176,6 +190,62 @@ def test_guest(selenium_standalone):
     data = CoverageData(basename=str(pytester.path / ".coverage"))
     data.read()
     assert data.measured_files() == {str(pytester.path / "test_guest.py")}
+
+
+def test_custom_launcher_maps_source_while_ignoring_empty_alias_groups(
+    pytester: pytest.Pytester, node_options: tuple[str, str]
+) -> None:
+    pytester.makepyprojecttoml(PYTEST_OPTIONS)
+    program = pytester.path / "src" / "decision.py"
+    program.parent.mkdir()
+    program.write_text(DECISION, encoding="utf-8")
+    pytester.makepyfile(
+        test_guest='''\
+from pathlib import Path
+
+from coverage_wasm.pyodide import start_pyodide_coverage
+
+
+def test_guest(selenium_standalone_noload, wasm_coverage):
+    runner = selenium_standalone_noload
+    runner.load_pyodide()
+    runner.initialize_pyodide()
+    program = Path("src/decision.py").resolve()
+    root = program.parent.as_posix()
+
+    def start(guest):
+        assert guest.source == []
+        assert guest.include == [f"{root}/**", "src/**"]
+        return start_pyodide_coverage(runner, guest)
+
+    finish = wasm_coverage.launch(
+        start, source_aliases={"unused": [], "app": ["src", root]}
+    )
+    try:
+        assert runner.run(f"""
+from pathlib import Path
+from runpy import run_path
+
+path = Path({program.as_posix()!r})
+path.parent.mkdir(parents=True, exist_ok=True)
+path.write_text({program.read_text(encoding='utf-8')!r})
+run_path(str(path))['decide'](True)
+""") == "taken"
+    finally:
+        finish()
+'''
+    )
+
+    result = pytester.runpytest_subprocess(
+        *node_options, "--cov=src", "--cov-branch", "-q"
+    )
+    result.assert_outcomes(passed=1)
+    assert "Wasm coverage collected from 1 test" in result.stdout.str()
+    data = CoverageData(basename=str(pytester.path / ".coverage"))
+    data.read()
+    assert data.contexts_by_lineno(str(program))[3] == [
+        "test_guest.py::test_guest[node]"
+    ]
 
 
 def test_explicit_pyodide_context_works_with_and_without_automatic_fixture(
@@ -234,13 +304,40 @@ def test_custom_scope(selenium_standalone_noload, wasm_coverage):
 def test_coverage_opt_out(selenium_standalone, wasm_coverage):
     with wasm_coverage(targets.pyodide(selenium_standalone)) as runner:
         assert decide(runner, True) == "taken"
+
+
+def test_rejects_uninitialized_runner(wasm_coverage):
+    with pytest.raises(TypeError, match="initialized pytest-pyodide runner"):
+        with wasm_coverage(targets.pyodide(object())):
+            pytest.fail("an invalid runner must fail before the test starts")
+
+
+def test_rejects_invalid_snapshot(selenium_standalone_noload, wasm_coverage):
+    selenium_standalone_noload.load_pyodide()
+    selenium_standalone_noload.initialize_pyodide()
+
+    class MissingSnapshot:
+        discard_result = False
+
+        def load_package(self, packages):
+            selenium_standalone_noload.load_package(packages)
+
+        def run(self, code):
+            value = selenium_standalone_noload.run(code)
+            return None if self.discard_result else value
+
+    wrapped = MissingSnapshot()
+    with pytest.raises(TypeError, match="invalid coverage snapshot"):
+        with wasm_coverage(targets.pyodide(wrapped)) as runner:
+            assert decide(runner, True) == "taken"
+            wrapped.discard_result = True
 '''
     )
 
     result = pytester.runpytest_subprocess(
         *node_options, "--cov", "--cov-report=html", "-v"
     )
-    result.assert_outcomes(passed=3)
+    result.assert_outcomes(passed=5)
     assert "No Python files" not in result.stdout.str()
     assert "Wasm coverage collected from 2 tests" in result.stdout.str()
     data = CoverageData(basename=str(pytester.path / ".coverage"))

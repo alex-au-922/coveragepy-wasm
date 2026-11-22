@@ -15,7 +15,14 @@ coverage-wasm = "coverage_wasm.pytest_plugin"
 
 [dependency-groups]
 dev = ["pytest>=9", "ruff>=0.11", "pyright>=1.1.395"]
-wasm-test = ["pytest-pyodide==0.59.4", "wasi-python==0.1.5"]
+wasm-test = [
+    "pytest-pyodide==0.59.4",
+    "pytest-xdist>=3.8",
+    "testcontainers==4.15.0",
+    "wasi-python==0.1.5",
+    "workers-py==1.17.9",
+    "workers-runtime-sdk==1.9.6",
+]
 
 [build-system]
 requires = ["uv_build>=0.9,<0.14"]

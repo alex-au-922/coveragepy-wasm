@@ -67,12 +67,8 @@ def source_filters(
     return [], list(dict.fromkeys(patterns))
 
 
-def start_pyodide_coverage(
-    runner: object, guest: GuestCoverage | None
-) -> Callable[[], None] | None:
+def start_pyodide_coverage(runner: object, guest: GuestCoverage) -> Callable[[], None]:
     """Measure a running pytest-pyodide fixture until its snapshot is requested."""
-    if guest is None:
-        return None
     if not isinstance(runner, PyodideRunner):
         raise TypeError("Coverage requires an initialized pytest-pyodide runner")
 

@@ -89,9 +89,10 @@ class _Run:
         if hasattr(self.config, "workerinput"):
             raise pytest.UsageError("coverage-wasm requires serial pytest; use -n 0")
 
-    def guest_paths(
-        self, default_paths: dict[str, list[str]] | None = None
-    ) -> tuple[list[str], list[str] | None, list[str] | None]:
+    def guest(
+        self, context: str, default_paths: dict[str, list[str]] | None = None
+    ) -> GuestCoverage:
+        self.check_runner()
         paths = cast(dict[str, list[str]], self.host.get_option("paths"))
         source, mapped = source_filters(
             cast(list[str] | None, self.host.get_option("run:source")) or [],
@@ -100,7 +101,16 @@ class _Run:
         )
         include = mapped or cast(list[str] | None, self.host.get_option("run:include"))
         omit = cast(list[str] | None, self.host.get_option("run:omit"))
-        return source, include, omit
+        return GuestCoverage(
+            context=context,
+            branch=cast(bool, self.host.get_option("run:branch")),
+            source=source,
+            include=include,
+            omit=omit,
+            _save=lambda payload, allow_empty: self.save(
+                payload, context, allow_empty=allow_empty
+            ),
+        )
 
     def save(self, payload: bytes, context: str, *, allow_empty: bool = False) -> None:
         self.check_runner()
@@ -190,20 +200,7 @@ class WasmCoverage:
         if run is None:
             return start(None)
 
-        run.check_runner()
-        source, include, omit = run.guest_paths(source_aliases)
-        return start(
-            GuestCoverage(
-                context=self.context,
-                branch=cast(bool, run.host.get_option("run:branch")),
-                source=source,
-                include=include,
-                omit=omit,
-                _save=lambda payload, allow_empty: run.save(
-                    payload, self.context, allow_empty=allow_empty
-                ),
-            )
-        )
+        return start(run.guest(self.context, source_aliases))
 
     def wasi(
         self,
@@ -264,8 +261,7 @@ class WasmCoverage:
             yield runner
             return
 
-        finish = self.launch(lambda guest: start_pyodide_coverage(runner, guest))
-        assert finish is not None
+        finish = start_pyodide_coverage(runner, run.guest(self.context))
         run.active_pyodide.add(key)
         try:
             yield runner

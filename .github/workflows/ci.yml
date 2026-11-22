@@ -1,4 +1,4 @@
-name: CI
+name: 100% E2E coverage gate
 
 on:
   push:
@@ -66,7 +66,7 @@ jobs:
         working-directory: examples/pyodide
         run: npm install --prefix .pyodide --no-save --no-package-lock pyodide@314.0.8
 
-      - name: Check source and run the runtime test suite
+      - name: Check source and exercise the installed wheel end to end
         run: |
           uv run --locked --group wasm-test ruff format --check src tests noxfile.py
           uv run --locked --group wasm-test ruff check src tests noxfile.py
@@ -74,12 +74,28 @@ jobs:
           coverage_version=$(uv run --locked --group wasm-test python -c 'import coverage; print(coverage.__version__)')
           uvx --from pip pip download --only-binary=:all: --platform any --no-deps \
             --dest "$RUNNER_TEMP" "coverage==$coverage_version"
-          WASM_COVERAGE_PURE_WHEEL="$RUNNER_TEMP/coverage-$coverage_version-py3-none-any.whl" \
-            uv run --locked --group wasm-test coverage run --data-file=.coverage-package \
-              --branch --source=coverage_wasm -m pytest --runtime=node \
-              --dist-dir=examples/pyodide/.pyodide/node_modules/pyodide
-          uv run --locked --group wasm-test coverage report --data-file=.coverage-package -m
-          uv run --locked --group wasm-test coverage html --data-file=.coverage-package
+          uv pip install --reinstall --no-deps dist/*.whl
+          audit=$(mktemp -d "$RUNNER_TEMP/coverage-wasm.XXXXXX")
+          test_status=0
+          PYTHONPATH="$PWD/tests/audit" \
+            WASM_PACKAGE_COVERAGE="$audit/.coverage" \
+            WASM_COVERAGE_PURE_WHEEL="$RUNNER_TEMP/coverage-$coverage_version-py3-none-any.whl" \
+            uv run --no-sync pytest --runtime=node \
+              -o asyncio_default_fixture_loop_scope=function \
+              --junitxml="$audit/tests.xml" \
+              --dist-dir=examples/pyodide/.pyodide/node_modules/pyodide || test_status=$?
+          uv run --no-sync coverage combine --rcfile=tests/audit/coverage.ini --data-file="$audit/.coverage"
+          uv run --no-sync coverage html --data-file="$audit/.coverage"
+          if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
+          uv run --no-sync python - "$audit/tests.xml" <<'PY'
+          import sys
+          from xml.etree import ElementTree
+
+          suite = ElementTree.parse(sys.argv[1])
+          if suite.findall(".//testcase/skipped"):
+              raise SystemExit("The end-to-end coverage job requires every runtime test to run")
+          PY
+          uv run --no-sync coverage report --data-file="$audit/.coverage" --show-missing --fail-under=100
 
       - name: Test the minimum Python and pytest with the wheel
         working-directory: examples/pyodide
@@ -118,6 +134,7 @@ jobs:
             dist/*.tar.gz
 
       - name: Keep package and example coverage reports
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: coverage-wasm-reports
