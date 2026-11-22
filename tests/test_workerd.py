@@ -304,7 +304,8 @@ def worker_url(wasm_coverage):
                        "exec ./node_modules/.bin/wrangler dev --local --no-bundle "
                        "--ip 0.0.0.0 --port 8787 --inspector-port 9229"])
         .with_exposed_ports(8787)
-        .waiting_for(LogMessageWaitStrategy("Ready on http://").with_startup_timeout(120))
+        # The container installs npm dependencies before starting Workerd.
+        .waiting_for(LogMessageWaitStrategy("Ready on http://").with_startup_timeout(300))
     )
     with wasm_coverage(targets.workerd_container(worker, Path({str(bundle)!r}))) as running:
         yield f"http://{{running.get_container_host_ip()}}:{{running.get_exposed_port(8787)}}"
