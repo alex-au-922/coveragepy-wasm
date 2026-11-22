@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  package:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -23,9 +23,8 @@ jobs:
           install: true
           cache: false
       - run: mise build
-      - run: mise test
 
-      - name: Keep the tested distributions
+      - name: Keep the built distributions
         uses: actions/upload-artifact@v7
         with:
           name: coverage-wasm-distributions
@@ -34,8 +33,34 @@ jobs:
             dist/*.whl
             dist/*.tar.gz
 
+  test:
+    name: Wasm E2E (Python ${{ matrix.python }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12', '3.13', '3.14', '3.15']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: mise install
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+        with:
+          version: "2026.9.1"
+          install: true
+          cache: false
+      - name: Download the built distributions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage-wasm-distributions
+          path: dist
+      - run: mise test ${{ matrix.python }}
+
       - name: Keep package and example coverage reports
-        if: ${{ !cancelled() && hashFiles('htmlcov/index.html') != '' }}
+        if: ${{ !cancelled() && matrix.python == '3.14' && hashFiles('htmlcov/index.html') != '' }}
         uses: actions/upload-artifact@v7
         with:
           name: coverage-wasm-reports

@@ -2,7 +2,7 @@
 
 Two tests exercise one shipping rule. Pyodide gets free shipping at the
 threshold, and native Python pays the fee below it. Run both tests with uv,
-Node.js 22, and npm. Start at the package root.
+Node.js 24, and npm. Start at the package root.
 
 ```sh
 uv build --wheel

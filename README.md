@@ -1,97 +1,110 @@
 # coverage-wasm
 
+**Python line and branch coverage from Wasm and the host, in one pytest report.**
+
 [![100% end-to-end coverage gate](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml/badge.svg?branch=codex%2Fpypi-rc1&event=push)](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml?query=branch%3Acodex%2Fpypi-rc1)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](#compatibility)
+[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Collect Python line and branch coverage from WebAssembly in pytest.
-Measure Pyodide, local Python Workers, or CPython on WASI alongside your host
-tests in the same pytest-cov report.
+Measure Python running in [Pyodide](#pyodide), [Workerd](#workerd), or
+[CPython on WASI](#cpython-on-wasi) while you run pytest.
+Coverage.py measures code inside the guest.
+The plugin brings its coverage data back to pytest-cov, which combines it with
+host coverage in a standard Coverage.py report.
 
-`coverage-wasm` is an independent pytest plugin. Coverage.py measures Python
-in the guest and writes its native coverage data. The plugin brings that data
-back to pytest-cov, which combines it with host coverage and generates the
-usual Coverage.py reports. Pytest loads the integration through its `pytest11`
-entry point. The distribution is `coverage-wasm` and the Python import is
-`coverage_wasm`.
+## Contents
 
-## Install and run
+- [Quick start](#quick-start)
+- [Runtimes](#runtimes)
+  - [Pyodide](#pyodide)
+  - [Workerd](#workerd)
+  - [CPython on WASI](#cpython-on-wasi)
+- [Coverage configuration](#coverage-configuration)
+- [Compatibility](#compatibility)
+- [Custom launchers](#custom-launchers)
+- [Development and releases](#development-and-releases)
 
-Use Python 3.11 or newer and pytest 8.4 or newer on the host. The preview
-installs Coverage.py 7.17.3 as a dependency. Install it from GitHub using an
-account with access to the private repository.
+## Quick start
+
+### Install from PyPI
+
+The first stable release is pending. Once it is available, install it in your
+test project with uv.
 
 ```sh
-uv add --dev git+https://github.com/alex-au-922/coverage-wasm
+uv add --dev coverage-wasm
 ```
 
-If you have a local checkout, add its source directory directly.
+With pip, run `python -m pip install coverage-wasm` in your test environment.
+The distribution includes pytest-cov as a dependency. It is named
+`coverage-wasm` on PyPI and imported as `coverage_wasm`.
+
+### Latest preview from GitHub
+
+To try the current development version, use the preview branch. Your GitHub
+account needs access to the private repository.
 
 ```sh
-uv add --dev /path/to/coverage-wasm
+uv add --dev 'git+https://github.com/alex-au-922/coverage-wasm.git@codex/pypi-rc1'
 ```
 
-After publication on PyPI, install a final release with
-`uv add --dev coverage-wasm`. For a release candidate, download the wheel
-from the tagged GitHub Actions run and install it with
-`uv add --dev ./coverage_wasm-0.2.0rc1-py3-none-any.whl`.
+If you already have the preview branch checked out, install it directly with
+`uv add --dev /path/to/coverage-wasm`.
 
-Request the `wasm_coverage` pytest fixture and open a target with
-`with wasm_coverage(target) as runtime:`. Each target yields its native
-runner, container, or completed result. Existing supported
-`pytest-pyodide` fixtures connect automatically.
+### Run with coverage
 
-| Runtime | Setup in the fixture that launches the guest |
-| --- | --- |
-| [Pyodide](#pyodide) | Use an existing supported fixture, or create a target with `targets.pyodide(runner)`. |
-| [Workerd](#workerd) | Pass a prebuilt Python Worker directory to `targets.wrangler(bundle)`. |
-| [CPython on WASI](#cpython-on-wasi) | Use `targets.wasi(argv, grants=grants)` with your script arguments and filesystem grants. |
+Choose a runtime below, then run pytest with your usual coverage options.
 
 ```sh
 uv run pytest --cov --cov-report=html
 ```
 
-Pytest loads the plugin automatically. `--cov` enables host and guest coverage
-in one report. Pytest announces Wasm coverage and reports how many tests
-contributed guest data. Use `-v` to see their test IDs.
+Pytest loads the plugin automatically. The run shows `Wasm coverage enabled`
+and reports how many tests contributed guest data. Open `htmlcov/index.html`
+to see the merged report. Add `-v` to see which tests contributed.
 
-`--cov-report=html` writes `htmlcov/index.html` by default. The report path and
-coverage threshold follow Coverage.py's `[html] directory` and
-`[report] fail_under` settings. Run plain pytest for tests only, or use
-`--no-cov` if coverage is configured in `addopts`. Use
-`@pytest.mark.no_cover` to skip guest instrumentation for one test before its
-fixtures run. The [runnable examples](examples/README.md) show each runtime's
-setup and expected coverage results.
+## Runtimes
 
-## Map guest and host source paths
+| Runtime | What to use in pytest |
+| --- | --- |
+| [Pyodide](#pyodide) | A supported pytest-pyodide fixture or `targets.pyodide(runner)` |
+| [Workerd](#workerd) | `targets.wrangler(bundle)` with a prebuilt Python Worker |
+| [CPython on WASI](#cpython-on-wasi) | `targets.wasi(argv, grants=grants)` for a script and filesystem grants |
 
-Use Coverage.py's `[paths]` to describe where the same files live. For a project
-with local `src/shipping.py` and guest `/app/shipping.py`, use this configuration
-in `pyproject.toml`.
+Each target can be opened with `with wasm_coverage(target) as runtime:`.
+The [runnable examples](examples/README.md) show the fixtures, test commands,
+and expected branches in each HTML report.
 
-```toml
-[tool.coverage.run]
-branch = true
-source = ["src"]
+### Pyodide
 
-[tool.coverage.paths]
-application = ["src", "/app"]
+Install `pytest-pyodide` in your test environment. Use a supported
+function-scoped fixture such as `selenium_standalone` for automatic coverage.
+For a shared or custom runner, attach coverage in a host-side fixture.
 
-[tool.coverage.html]
-show_contexts = true
+```python
+from collections.abc import Iterator
+
+import pytest
+
+from coverage_wasm import Pyodide, targets
+from coverage_wasm.pytest_plugin import WasmCoverage
+
+
+@pytest.fixture
+def selenium_covered(
+    selenium_module_scope: Pyodide, wasm_coverage: WasmCoverage
+) -> Iterator[Pyodide]:
+    with wasm_coverage(targets.pyodide(selenium_module_scope)) as runner:
+        yield runner
 ```
 
-Put the host directory first. The plugin applies the guest alias when starting
-guest coverage, and Coverage.py maps the measured paths back to `src` when it
-combines the data. If a Pyodide case reports zero measured files, check that
-the guest runs the application and that the configured paths match. Here
-`branch = true` enables branch coverage for both collectors.
+The context collects coverage before the runner shuts down.
+The [Pyodide example](examples/pyodide/README.md) exercises opposite branches
+from the host and guest and shows both branches in one report.
 
-```sh
-uv run pytest --cov=src --cov-report=html
-```
+### Workerd
 
-## Workerd
-
-### Bundle contract
+#### Bundle contract
 
 Build the Python Worker with your project's usual build process and give
 coverage-wasm the resulting directory. It must be runnable with local
@@ -121,7 +134,7 @@ pytest.
 wrangler dev --local --no-bundle --config ./artifacts/worker/wrangler.toml
 ```
 
-### Run with pytest
+#### Run with pytest
 
 Supply `worker_bundle` from your project's build fixture or point it at
 an artifact already produced by your CI build. The coverage fixture only
@@ -172,7 +185,7 @@ Open `htmlcov/index.html`. Workerd branch coverage uses guest Python 3.14
 and the `sysmon` core. The [Workerd example](examples/workerd/README.md)
 shows a project that builds its own bundle with Pywrangler.
 
-### Testcontainers and custom launchers
+#### Testcontainers and custom launchers
 
 Pass the configured Testcontainers Worker and its build artifact to
 `targets.workerd_container()`.
@@ -204,17 +217,30 @@ with wasm_coverage(target) as worker:
     yield worker.url
 ```
 
-## CPython on WASI
+### CPython on WASI
 
-Pass your existing script arguments and filesystem grants to `targets.wasi()`.
-Opening the target runs the script and yields the completed result.
+Install `wasi-python` in your test environment. Pass your script arguments
+and filesystem grants to `targets.wasi()`. Opening the target runs the script
+and yields the completed result. Place this test beside the `src/` directory
+and use the [example `shipping.py`](examples/wasi/src/shipping.py).
 
 ```python
-target = targets.wasi(
-    ["/app/shipping.py", "100"], grants=[Grant(source, "/app")]
-)
-with wasm_coverage(target) as result:
-    assert result.exit_code == 0, result.stderr.decode()
+from pathlib import Path
+
+from wasi_python import Grant
+
+from coverage_wasm import targets
+from coverage_wasm.pytest_plugin import WasmCoverage
+
+
+def test_free_shipping(wasm_coverage: WasmCoverage) -> None:
+    source = Path(__file__).resolve().parent / "src"
+    target = targets.wasi(
+        ["/app/shipping.py", "5000"], grants=[Grant(source, "/app")]
+    )
+    with wasm_coverage(target) as result:
+        assert result.exit_code == 0, result.stderr.decode()
+        assert result.stdout.strip() == b"0"
 ```
 
 Python on WASI needs `sqlite3` for Coverage.py. For other guest launchers,
@@ -226,27 +252,55 @@ An explicit Coverage.py `[paths]` configuration takes precedence.
 Use Coverage.py's `omit` setting if a nested grant exposes files outside the
 source tree you're measuring.
 
-## Pyodide
+## Coverage configuration
 
-Use your existing supported function-scoped `pytest-pyodide` fixture for
-automatic coverage. With an initialized runner of your own, attach
-coverage in a host-side fixture or test.
+Use Coverage.py's `[paths]` to describe where the same files live. For a project
+with local `src/shipping.py` and guest `/app/shipping.py`, use this configuration
+in `pyproject.toml`.
 
-```python
-with wasm_coverage(targets.pyodide(runner)) as pyodide:
-    assert pyodide.run("2 + 2") == 4
+```toml
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.paths]
+application = ["src", "/app"]
+
+[tool.coverage.html]
+show_contexts = true
 ```
 
-The context yields your runner and exports coverage on exit. A context
-around an already-covered runner reuses its active per-test collector.
-Your runner fixture still owns shutdown.
+Put the host directory first. The plugin applies the guest alias when starting
+guest coverage, and Coverage.py maps the measured paths back to `src` when it
+combines the data. `branch = true` enables branch coverage for both collectors.
 
-To migrate from `@run_in_pyodide_coverage`, use `@run_in_pyodide` with a
-supported fixture and move any `coverage_args` filters into your Coverage.py
-configuration. Suites using the upstream coverage decorator can run it with a
-plain pytest invocation.
+```sh
+uv run pytest --cov=src --cov-report=html
+```
 
-## Launcher contract
+Set `[tool.coverage.html] directory` to change the HTML output directory
+and `[tool.coverage.report] fail_under` to set a coverage threshold.
+
+Run plain pytest for tests only, or pass `--no-cov` when coverage is enabled
+in `addopts`. Use `@pytest.mark.no_cover` to skip guest instrumentation for
+one test. If you use pytest-xdist by default, pass `-n 0` for the Wasm run.
+
+## Compatibility
+
+The host runs pytest. Each Wasm runtime provides its own guest Python.
+The host requires Python 3.11+ and pytest 8.4+. The package pins Coverage.py
+7.17.3 for host collection and merging.
+
+| CI check | Host CPython |
+| --- | --- |
+| Installed-wheel E2E in Pyodide, Workerd, and WASI | 3.11–3.15 |
+| Minimum pytest version (8.4) | 3.11 |
+| 100% package line and branch coverage | 3.14 |
+
+The [examples](examples/README.md) list the tested guest runtime versions.
+Workerd branch coverage uses guest Python 3.14 and `sysmon`.
+
+## Custom launchers
 
 An integration can implement `WasmCoverageTarget[T]`, a callable that accepts
 the coverage fixture and returns a context manager yielding `T`. Use
@@ -285,9 +339,6 @@ filters. Coverage.py's `[paths]` takes precedence and controls how snapshots
 are combined. A launcher may also translate its snapshot's filenames before
 saving, as the WASI adapter does with filesystem grants.
 
-Run Wasm coverage serially. If your project uses pytest-xdist by default,
-use `pytest -n 0` for the Wasm run.
-
 ## Development and releases
 
 Install [mise](https://mise.jdx.dev/getting-started.html) and start Docker,
@@ -299,13 +350,14 @@ mise build
 mise test
 ```
 
-The [CI workflow](.github/workflows/coverage.yml) runs the same commands on
-pushes and pull requests. The test task checks the installed wheel on Python
-3.11 through 3.15, including pytest 8.4 on Python 3.11. It also exercises the
-wheel in Pyodide, WASI, and Workerd, with HTTP requests to Workerd through
-Testcontainers. The coverage badge follows the 100% package line and branch
-coverage gate. Open `htmlcov/index.html` after a local run, or download the
-`coverage-wasm-reports` artifact for the package and example HTML reports.
+`mise test` runs the full Nox matrix. Run `mise test 3.11` to select one host
+version. The [CI workflow](.github/workflows/coverage.yml) builds one wheel
+and runs the five host versions as parallel jobs on pushes and pull requests.
+The 3.14 job also checks 100% package line and branch coverage and runs the
+example projects. Open `htmlcov/index.html` after a full local run or download
+the `coverage-wasm-reports` artifact for the package and example HTML reports.
+
+### Release process
 
 For a release, set the Python package version in `pyproject.toml`, run
 `uv lock`, and update the examples' matching wheel references. Git tags
