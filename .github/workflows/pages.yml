@@ -11,13 +11,6 @@ on:
       - 'uv.lock'
   push:
     branches: [main]
-    paths:
-      - 'docs/**'
-      - 'zensical.toml'
-      - '.github/workflows/pages.yml'
-      - 'mise.toml'
-      - 'pyproject.toml'
-      - 'uv.lock'
   workflow_dispatch:
 
 permissions:
@@ -25,9 +18,13 @@ permissions:
 
 concurrency:
   group: docs-${{ github.ref }}
-  cancel-in-progress: false
+  queue: max
 
 jobs:
+  package:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/coverage.yml
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -49,7 +46,7 @@ jobs:
 
   deploy:
     if: github.ref == 'refs/heads/main'
-    needs: build
+    needs: [package, build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
