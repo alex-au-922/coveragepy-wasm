@@ -6,13 +6,18 @@ from subprocess import check_output, run
 
 
 def main() -> None:
-    previous = check_output(
-        ["git", "show", f"{os.environ['PREVIOUS_SHA']}:pyproject.toml"], text=True
-    )
     version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
-    if version == tomllib.loads(previous)["project"]["version"]:
-        print("The package version is unchanged.")
-        return
+    expected = os.environ.get("RELEASE_VERSION")
+    if expected:
+        if expected != version:
+            raise SystemExit(f"Requested {expected}, but main contains {version}")
+    else:
+        previous = check_output(
+            ["git", "show", f"{os.environ['PREVIOUS_SHA']}:pyproject.toml"], text=True
+        )
+        if version == tomllib.loads(previous)["project"]["version"]:
+            print("The package version is unchanged.")
+            return
 
     number = r"(?:0|[1-9][0-9]*)"
     match = re.fullmatch(rf"({number}\.{number}\.{number})(?:rc({number}))?", version)
@@ -31,7 +36,10 @@ def main() -> None:
         ref.check_returncode()
     tagged = ref.stdout.strip()
     if tagged and tagged != os.environ["GITHUB_SHA"]:
-        print(f"{tag} is already allocated to {tagged}.")
+        message = f"{tag} already points to {tagged}."
+        if expected:
+            raise SystemExit(message)
+        print(message)
         return
 
     with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as outputs:

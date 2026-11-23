@@ -5,7 +5,7 @@ requires-python = ">=3.14"
 
 [dependency-groups]
 dev = [
-    "coverage-wasm==0.2.0rc1",
+    "coverage-wasm==0.2.0",
     "httpx>=0.28,<0.29",
     "pytest>=9,<10",
     "workers-py==1.17.9",
@@ -13,7 +13,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-coverage-wasm = { path = "../../dist/coverage_wasm-0.2.0rc1-py3-none-any.whl" }
+coverage-wasm = { path = "../../dist/coverage_wasm-0.2.0-py3-none-any.whl" }
 
 [tool.pytest.ini_options]
 testpaths = ["test_worker.py"]

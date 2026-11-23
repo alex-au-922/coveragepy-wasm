@@ -28,8 +28,7 @@ host coverage in a standard `coverage.py` report.
 
 ### Install from PyPI
 
-The first stable release is pending. Once it is available, install it in your
-test project with uv.
+Install the stable release in your test project with uv.
 
 ```sh
 uv add --dev coverage-wasm
@@ -358,10 +357,10 @@ View the reports in `htmlcov/index.html` locally or in the
 
 ### Releases
 
-When a new package version reaches protected `main`, the
-[release workflow](.github/workflows/release.yml) tests the commit and tags
-it. Each tag points to the tested commit. To check out tagged source in a
-clone, use `git switch --detach v0.2.0-rc.1`.
+The [release workflow](.github/workflows/release.yml) runs when a package
+version changes on protected `main` or when triggered for an exact version on
+`main`. It tests the commit and tags it. To check out tagged source in a
+clone, use `git switch --detach v0.2.0`.
 
 | Release | Example Git tag | Distribution |
 | --- | --- | --- |

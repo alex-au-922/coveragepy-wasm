@@ -1,6 +1,6 @@
 [project]
 name = "coverage-wasm"
-version = "0.2.0rc1"
+version = "0.2.0"
 description = "Bring Python coverage data from WebAssembly runtimes to Coverage.py"
 readme = "README.md"
 license = "MIT"

@@ -375,7 +375,7 @@ wheels = [
 
 [[package]]
 name = "coverage-wasm"
-version = "0.2.0rc1"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "coverage" },

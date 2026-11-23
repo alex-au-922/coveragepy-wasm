@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0rc1
+## 0.2.0
 
 - Use `pytest --cov` for both host and guest coverage. Report the tests that
   contribute guest data.

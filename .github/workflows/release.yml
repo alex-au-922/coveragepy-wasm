@@ -4,13 +4,19 @@ on:
   push:
     branches: [main]
     paths: [pyproject.toml]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Package version on main to release
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   plan:
-    if: github.ref_protected
+    if: github.ref == 'refs/heads/main' && (github.ref_protected || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.version.outputs.tag }}
@@ -25,6 +31,7 @@ jobs:
         id: version
         env:
           PREVIOUS_SHA: ${{ github.event.before }}
+          RELEASE_VERSION: ${{ inputs.version }}
         run: python3 .github/scripts/plan_release.py
 
   verify:
