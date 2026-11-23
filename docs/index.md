@@ -9,8 +9,8 @@ report.
 
 ## Install
 
-Use host CPython 3.11 or newer and `pytest` 8.4 or newer. To install the current
-development version in your test project, run:
+Use host CPython 3.11 or newer and `pytest` 8.4 or newer. Install the current
+development version from GitHub in your test project.
 
 ```sh
 uv add --dev git+https://github.com/alex-au-922/coveragepy-wasm.git --branch main
