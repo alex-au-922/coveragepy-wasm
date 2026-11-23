@@ -26,6 +26,9 @@ jobs:
     uses: ./.github/workflows/coverage.yml
 
   build:
+    name: Build documentation
+    needs: package
+    if: ${{ !cancelled() && (github.ref != 'refs/heads/main' || needs.package.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -38,7 +41,7 @@ jobs:
           version: "2026.9.1"
           install: true
           cache: false
-      - run: mise docs:build
+      - run: mise build-doc
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         if: github.ref == 'refs/heads/main'
         with:
@@ -46,7 +49,7 @@ jobs:
 
   deploy:
     if: github.ref == 'refs/heads/main'
-    needs: [package, build]
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
