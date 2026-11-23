@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 339 64" role="img" aria-labelledby="title">
   <title id="title">coverage-wasm</title>
   <style>
-    .tile, .accent { fill: #5140C5; }
-    .label { fill: #21164A; }
+    .tile { fill: #5140C5; }
+    .label { fill: #796E9D; }
+    .accent { fill: #7669DB; }
     .ink { color: #FAF8FF; }
     .outline { stroke: #D3C8FF; }
     .python { color: #FFE8A0; }
     @media (prefers-color-scheme: dark) {
-      .tile, .accent { fill: #B2A5FF; }
-      .label { fill: #FAF8FF; }
+      .tile { fill: #B2A5FF; }
       .ink { color: #21164A; }
       .outline { stroke: #49397D; }
       .python { color: #382044; }
