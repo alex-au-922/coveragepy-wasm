@@ -4,9 +4,13 @@ from pathlib import Path, PurePosixPath
 from typing import Protocol, runtime_checkable
 from uuid import uuid4
 
+from coverage_wasm._guest import GuestCoverage
+
 
 @runtime_checkable
 class PyodideRunner(Protocol):
+    """Host-side interface for a running pytest-pyodide fixture."""
+
     def load_package(self, packages: str) -> None: ...
 
     def run(self, code: str) -> object: ...
@@ -63,15 +67,7 @@ def source_filters(
     return [], list(dict.fromkeys(patterns))
 
 
-def start_pyodide_coverage(
-    runner: object,
-    *,
-    context: str,
-    source: list[str],
-    branch: bool,
-    include: list[str] | None = None,
-    omit: list[str] | None = None,
-) -> Callable[[], bytes]:
+def start_pyodide_coverage(runner: object, guest: GuestCoverage) -> Callable[[], None]:
     """Measure a running pytest-pyodide fixture until its snapshot is requested."""
     if not isinstance(runner, PyodideRunner):
         raise TypeError("Coverage requires an initialized pytest-pyodide runner")
@@ -86,16 +82,16 @@ stdlib_zip = f"*/python{{sys.version_info.major}}{{sys.version_info.minor}}.zip/
 Coverage(
     data_file={data_file!r},
     config_file=False,
-    branch={branch!r},
-    source={source or None!r},
-    include={include or None!r},
-    omit=[stdlib_zip, *{omit or []!r}],
-    context={context!r},
+    branch={guest.branch!r},
+    source={guest.source or None!r},
+    include={guest.include or None!r},
+    omit=[stdlib_zip, *{guest.omit or []!r}],
+    context={guest.context!r},
 ).start()
 """
     runner.run(f"exec({start!r}, {{}})")
 
-    def finish() -> bytes:
+    def finish() -> None:
         stop = f"""\
 from base64 import b64encode
 from pathlib import Path
@@ -119,6 +115,6 @@ data_file.unlink()
             raise TypeError(
                 "The pytest-pyodide runner returned an invalid coverage snapshot"
             )
-        return b64decode(payload, validate=True)
+        guest.save(b64decode(payload, validate=True), allow_empty=True)
 
     return finish

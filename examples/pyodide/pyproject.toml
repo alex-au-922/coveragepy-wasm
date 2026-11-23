@@ -7,7 +7,6 @@ requires-python = ">=3.11"
 dev = [
     "coverage-wasm==0.2.0",
     "pytest==9.2.0",
-    "pytest-cov==7.1.0",
     "pytest-pyodide==0.59.4",
 ]
 
@@ -23,7 +22,7 @@ branch = true
 include = ["*/shipping.py"]
 
 [tool.coverage.paths]
-shipping = [".", "/app"]
+shipping = [".", "/home/pyodide"]
 
 [tool.coverage.html]
 show_contexts = true

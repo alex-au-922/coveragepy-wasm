@@ -1,4 +1,6 @@
 from base64 import b64encode
+from collections.abc import Callable, Generator, Iterator
+from contextlib import contextmanager
 from importlib import import_module
 from pathlib import Path
 from shutil import copytree, ignore_patterns
@@ -6,10 +8,17 @@ from shutil import copytree, ignore_patterns
 import coverage
 
 from coverage_wasm import snapshot
+from coverage_wasm._guest import GuestCoverage
 
 
 def install(
-    python_modules: Path, *, include: list[str], context: str = "", branch: bool = True
+    python_modules: Path,
+    *,
+    include: list[str] | None,
+    context: str = "",
+    branch: bool = True,
+    source: list[str] | None = None,
+    omit: list[str] | None = None,
 ) -> None:
     """Install coverage into an already built, test-only Python Worker bundle."""
     ignore = ignore_patterns("__pycache__", "*.so", "*.pyd")
@@ -17,18 +26,28 @@ def install(
     copytree(Path(__file__).parent, python_modules / "coverage_wasm", ignore=ignore)
     (python_modules / "coverage_wasm.pth").write_text(
         "import coverage_wasm.workerd; "
-        f"coverage_wasm.workerd.start({include!r}, {context!r}, {branch!r})\n",
+        f"coverage_wasm.workerd.start({include!r}, {context!r}, {branch!r}, "
+        f"source={source!r}, omit={omit!r})\n",
         encoding="utf-8",
     )
 
 
-def start(include: list[str], context: str, branch: bool = True) -> None:
+def start(
+    include: list[str] | None,
+    context: str,
+    branch: bool = True,
+    *,
+    source: list[str] | None = None,
+    omit: list[str] | None = None,
+) -> None:
     """Start the collector when Workerd processes the test bundle's .pth file."""
     collector = coverage.Coverage(
         data_file="/tmp/wasm-coverage",
         config_file=False,
         branch=branch,
+        source=source or None,
         include=include,
+        omit=omit,
         context=context,
     )
     collector.set_option("run:core", "sysmon")
@@ -49,3 +68,22 @@ def snapshot_command(port: int = 9229) -> list[str]:
         Path(__file__).with_name("workerd_snapshot.mjs").read_text(encoding="utf-8")
     )
     return ["node", "--input-type=module", "-e", script, str(port)]
+
+
+@contextmanager
+def collect(
+    guest: GuestCoverage | None,
+    execute: Callable[[list[str]], tuple[int | None, bytes | Iterator[bytes]]],
+    port: int,
+) -> Generator[None, None, None]:
+    """Export once, before the context that owns Workerd can stop it."""
+    try:
+        yield
+    finally:
+        if guest is not None:
+            status, payload = execute(snapshot_command(port))
+            if not isinstance(payload, bytes):
+                payload = b"".join(payload)
+            if status != 0:
+                raise RuntimeError(payload.decode(errors="replace"))
+            guest.save(payload)

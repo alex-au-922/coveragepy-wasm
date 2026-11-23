@@ -1,4 +1,5 @@
 import json
+from importlib.metadata import version
 from importlib.util import find_spec
 from os import getenv
 from pathlib import Path
@@ -66,11 +67,10 @@ def guest_project(tmp_path: Path) -> Path:
 
     coverage_wheel = Path(pure_wheel)
     assert coverage_wheel.name == f"coverage-{__version__}-py3-none-any.whl"
-    package_wheels = list((ROOT / "dist").glob("coverage_wasm-*-py3-none-any.whl"))
-    assert len(package_wheels) == 1, (
-        "Build the coverage-wasm wheel with uv build --wheel"
-    )
-    for wheel in [coverage_wheel, *package_wheels]:
+    package_version = version("coverage-wasm")
+    package_wheel = ROOT / "dist" / f"coverage_wasm-{package_version}-py3-none-any.whl"
+    assert package_wheel.is_file(), f"Build the {package_version} coverage-wasm wheel"
+    for wheel in [coverage_wheel, package_wheel]:
         copyfile(wheel, tmp_path / wheel.name)
 
     (tmp_path / "decision.py").write_text(DECISION, encoding="utf-8")
@@ -96,6 +96,7 @@ def assert_native_report(project: Path) -> None:
     report.json_report(outfile=str(json_path))
     html_dir = project / "htmlcov"
     report.html_report(directory=str(html_dir), show_contexts=True)
+    report.get_data().close(force=True)
     assert "decision.py" in (html_dir / "index.html").read_text(encoding="utf-8")
     files = json.loads(json_path.read_text(encoding="utf-8"))["files"]
     ((filename, entry),) = files.items()

@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [pyproject.toml]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Package version on main to release
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    if: github.ref == 'refs/heads/main' && (github.ref_protected || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      create_tag: ${{ steps.version.outputs.create_tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Read the release version
+        id: version
+        env:
+          PREVIOUS_SHA: ${{ github.event.before }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import tomllib
+          from pathlib import Path
+          from subprocess import check_output, run
+
+
+          def main() -> None:
+              version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+              expected = os.environ.get("RELEASE_VERSION")
+              if expected:
+                  if expected != version:
+                      raise SystemExit(f"Requested {expected}, but main contains {version}")
+              else:
+                  previous = check_output(
+                      ["git", "show", f"{os.environ['PREVIOUS_SHA']}:pyproject.toml"], text=True
+                  )
+                  if version == tomllib.loads(previous)["project"]["version"]:
+                      print("The package version is unchanged.")
+                      return
+
+              number = r"(?:0|[1-9][0-9]*)"
+              match = re.fullmatch(rf"({number}\.{number}\.{number})(?:rc({number}))?", version)
+              if match is None:
+                  raise SystemExit("Use a major.minor.patch version or a release candidate")
+              base, candidate = match.groups()
+              tag = f"v{base}-rc.{candidate}" if candidate is not None else f"v{base}"
+
+              ref = run(
+                  ["git", "rev-parse", "--quiet", "--verify", f"refs/tags/{tag}^{{commit}}"],
+                  check=False,
+                  capture_output=True,
+                  text=True,
+              )
+              if ref.returncode not in (0, 1):
+                  ref.check_returncode()
+              tagged = ref.stdout.strip()
+              if tagged and tagged != os.environ["GITHUB_SHA"]:
+                  message = f"{tag} already points to {tagged}."
+                  if expected:
+                      raise SystemExit(message)
+                  print(message)
+                  return
+
+              with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as outputs:
+                  print(f"tag={tag}", file=outputs)
+                  print(f"create_tag={str(not tagged).lower()}", file=outputs)
+                  print(f"prerelease={str(candidate is not None).lower()}", file=outputs)
+
+
+          if __name__ == "__main__":
+              main()
+          PY
+
+  verify:
+    needs: plan
+    if: needs.plan.outputs.tag != ''
+    uses: ./.github/workflows/coverage.yml
+
+  tag:
+    needs: [plan, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Tag the verified commit
+        if: needs.plan.outputs.create_tag == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          gh api --silent --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f "ref=refs/tags/$RELEASE_TAG" -f "sha=$GITHUB_SHA"
+
+  publish:
+    if: needs.plan.outputs.prerelease == 'false'
+    needs: [plan, tag]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Download the tested distributions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage-wasm-distributions
+          path: dist
+
+      - name: Publish the tested distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          skip-existing: true

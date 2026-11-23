@@ -20,6 +20,8 @@ testpaths = ["test_worker.py"]
 
 [tool.coverage.run]
 branch = true
+source = ["src"]
+omit = ["*/python_modules/**"]
 
 [tool.coverage.paths]
 source = ["src", "/session/metadata"]
