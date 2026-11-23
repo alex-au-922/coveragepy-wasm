@@ -5,9 +5,9 @@ requires-python = ">=3.11"
 
 [dependency-groups]
 dev = [
-    "coverage-wasm==0.2.0",
-    "pytest==9.2.0",
-    "pytest-pyodide==0.59.4",
+    "coverage-wasm>=0.2.0",
+    "pytest>=8.4",
+    "pytest-pyodide>=0.59.4,<0.60",
 ]
 
 [tool.uv.sources]

@@ -3,7 +3,7 @@
 With Node and npm available, install the test plugin and its Pyodide runtime.
 
 ```sh
-uv add --dev pytest-pyodide==0.59.4
+uv add --dev 'pytest-pyodide>=0.59.4,<0.60'
 npm install --prefix .pyodide --no-save --no-package-lock pyodide@314.0.8
 ```
 

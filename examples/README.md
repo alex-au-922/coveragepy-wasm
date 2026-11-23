@@ -9,8 +9,8 @@ Run `uv run pytest` for tests only. Add `--cov` to measure coverage and
 
 | Example | Tested runtime | Coverage handoff |
 | --- | --- | --- |
-| [Pyodide](pyodide/README.md) | Pyodide 314.0.8, `pytest-pyodide` 0.59.4, Node 26.13.1 | `selenium_standalone` |
-| [Workerd](workerd/README.md) | Wrangler 4.164.0, Node 26.13.1, Python 3.14 | `targets.wrangler(bundle)` |
+| [Pyodide](pyodide/README.md) | Pyodide 314.0.8, `pytest-pyodide` 0.59.4, Node 26 | `selenium_standalone` |
+| [Workerd](workerd/README.md) | Wrangler 4.164.0, Node 26, Python 3.14 | `targets.wrangler(bundle)` |
 | [WASI](wasi/README.md) | CPython on Wasmtime via wasi-python 0.1.5 | `targets.wasi(argv, grants=grants)` |
 
 The [Pyodide example](pyodide/README.md) also shows how two tests can cover
