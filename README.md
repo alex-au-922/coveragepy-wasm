@@ -128,8 +128,9 @@ After a full local run, open `htmlcov/index.html`. On GitHub, download the
 `coverage-wasm-reports` and `coverage-wasm-example-reports` Actions artifacts.
 
 Run `mise docs:build` to build and validate the documentation with Zensical.
-GitHub Actions builds it on pull requests and deploys it to GitHub Pages from
-`main`.
+GitHub Actions checks documentation changes on pull requests. Every push to
+`main` builds the documentation and runs the package build, test matrix, and
+coverage gate for the same commit. GitHub Pages publishes once both jobs pass.
 
 ### Releases
 
