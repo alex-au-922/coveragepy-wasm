@@ -297,6 +297,13 @@ one test. If you use `pytest-xdist` by default, pass `-n 0` for the Wasm run.
 
 Requires host CPython 3.11+ and `pytest` 8.4+.
 
+For branch coverage with the
+[`sysmon` measurement core](https://coverage.readthedocs.io/en/7.17.3/config.html#run-core),
+the Python process being measured needs Python 3.14 or newer.
+On host Python 3.11–3.13, `coverage.py` can measure branches with `ctrace`.
+For local Python Workers, the branch coverage requirement applies to
+the Python version inside Workerd.
+
 ## Custom launchers
 
 An integration can implement `WasmCoverageTarget[T]`, a callable that accepts
@@ -350,10 +357,11 @@ mise test
 `mise test` runs the full Nox matrix. Run `mise test 3.11` to select one host
 version. Develop on a feature branch and open a pull request into `main`.
 The [CI workflow](.github/workflows/coverage.yml) runs on feature branch pushes
-and pull requests. It tests one wheel across all five host versions. The
-3.14 job checks 100% package line and branch coverage and runs the examples.
-View the reports in `htmlcov/index.html` locally or in the
-`coverage-wasm-reports` Actions artifact.
+and pull requests. It tests one wheel across all five host versions. Each job
+records package line and branch data. The combined report requires 100%
+coverage across the matrix. The 3.14 job also runs the examples.
+After a full local run, open `htmlcov/index.html`. On GitHub, download the
+`coverage-wasm-reports` and `coverage-wasm-example-reports` Actions artifacts.
 
 ### Releases
 

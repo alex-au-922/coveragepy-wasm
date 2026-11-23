@@ -18,7 +18,7 @@ uv tool run twine check --strict "dist/coverage_wasm-$version-py3-none-any.whl" 
 '''
 
 [tasks.test]
-description = "Test the built wheel end to end and require full package coverage"
+description = "Test the built wheel end to end and collect package coverage"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
@@ -48,9 +48,17 @@ uv tool run --from pip pip download --only-binary=:all: --platform any --no-deps
 uv tool run nox==2026.10.20 --error-on-missing-interpreters --parallel 2 \
     -s "$session" -- "$wheel" "$temp/coverage-$coverage_version-py3-none-any.whl"
 
+if (( $# == 0 )); then
+    mise run coverage
+fi
+
 if (( $# == 1 )) && [[ $1 != 3.14 ]]; then
     exit 0
 fi
+
+uv run --locked --group wasm-test ruff format --check src tests noxfile.py
+uv run --locked --group wasm-test ruff check src tests noxfile.py
+uv run --locked --group wasm-test pyright
 
 # Refresh the local wheel in each example if its contents changed.
 (
@@ -73,4 +81,15 @@ fi
     uv run --upgrade-package coverage-wasm pytest --cov=src --cov-report=html --cov-fail-under=100
     test -s htmlcov/index.html
 )
+'''
+
+[tasks.coverage]
+description = "Combine host coverage data and require 100% package coverage"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+coverage=(uv run --isolated --locked --no-default-groups coverage)
+"${coverage[@]}" combine --keep .coverage-matrix
+"${coverage[@]}" html --fail-under=100
 '''

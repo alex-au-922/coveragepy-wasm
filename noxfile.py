@@ -1,4 +1,5 @@
 from pathlib import Path
+from shutil import copyfile
 from xml.etree import ElementTree
 
 import nox
@@ -12,7 +13,6 @@ import nox
 def tests(session: nox.Session) -> None:
     """Exercise the installed wheel in real Wasm runtimes on each host Python."""
     wheel, coverage_wheel = session.posargs
-    audit = session.python == "3.14"
     session.run(
         "uv",
         "sync",
@@ -23,7 +23,7 @@ def tests(session: nox.Session) -> None:
         "--no-install-project",
         "--python",
         str(session.python),
-        *([] if audit else ["--no-default-groups"]),
+        "--no-default-groups",
         external=True,
     )
     session.install("--no-deps", wheel)
@@ -35,43 +35,25 @@ def tests(session: nox.Session) -> None:
     temp.mkdir()
     junit = temp / "tests.xml"
     data = temp / ".coverage"
-    env = {"WASM_COVERAGE_PURE_WHEEL": coverage_wheel, "TMPDIR": str(temp)}
-    if audit:
-        session.run("ruff", "format", "--check", "src", "tests", "noxfile.py")
-        session.run("ruff", "check", "src", "tests", "noxfile.py")
-        session.run("pyright")
-        env.update(
-            PYTHONPATH=str(Path("tests/audit").resolve()),
-            WASM_PACKAGE_COVERAGE=str(data),
-        )
-
-    try:
-        session.run(
-            "pytest",
-            "--runtime=node",
-            "-o",
-            "asyncio_default_fixture_loop_scope=function",
-            f"--junitxml={junit}",
-            "--dist-dir=examples/pyodide/.pyodide/node_modules/pyodide",
-            env=env,
-        )
-    finally:
-        if audit and any(temp.glob(".coverage.*")):
-            session.run(
-                "coverage",
-                "combine",
-                "--rcfile=tests/audit/coverage.ini",
-                f"--data-file={data}",
-            )
-            session.run("coverage", "html", f"--data-file={data}")
-
+    session.run(
+        "pytest",
+        "-x",
+        "--runtime=node",
+        "-o",
+        "asyncio_default_fixture_loop_scope=function",
+        f"--junitxml={junit}",
+        "--dist-dir=examples/pyodide/.pyodide/node_modules/pyodide",
+        env={
+            "PYTHONPATH": str(Path("tests").resolve()),
+            "TMPDIR": str(temp),
+            "WASM_COVERAGE_PURE_WHEEL": coverage_wheel,
+            "WASM_PACKAGE_COVERAGE": str(data),
+        },
+    )
     if ElementTree.parse(junit).findall(".//testcase/skipped"):
         session.error("The end-to-end matrix requires every runtime test to run")
-    if audit:
-        session.run(
-            "coverage",
-            "report",
-            f"--data-file={data}",
-            "--show-missing",
-            "--fail-under=100",
-        )
+
+    session.run("coverage", "combine", f"--data-file={data}")
+    matrix = Path(".coverage-matrix")
+    matrix.mkdir(exist_ok=True)
+    copyfile(data, matrix / f".coverage.{session.python}")
