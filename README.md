@@ -125,8 +125,9 @@ coverage across the matrix. The 3.14 job also runs the examples.
 After a full local run, open `htmlcov/index.html`. On GitHub, download the
 `coverage-wasm-reports` and `coverage-wasm-example-reports` Actions artifacts.
 
-Run `mise docs:build` to validate the documentation locally. GitHub Actions
-builds it on pull requests and deploys it to GitHub Pages from `main`.
+Run `mise docs:build` to build and validate the documentation with Zensical.
+GitHub Actions builds it on pull requests and deploys it to GitHub Pages from
+`main`.
 
 ### Releases
 
