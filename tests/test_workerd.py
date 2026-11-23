@@ -296,7 +296,7 @@ from coverage_wasm import targets
 @pytest.fixture
 def worker_url(wasm_coverage):
     worker = (
-        DockerContainer("node:24.18.0-bookworm")
+        DockerContainer("node:26.13.1-bookworm")
         .with_env("CI", "true")
         .with_env("WRANGLER_SEND_METRICS", "false")
         .with_kwargs(working_dir="/bundle")

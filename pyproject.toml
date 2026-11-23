@@ -6,7 +6,11 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
-dependencies = ["coverage==7.17.3", "pytest>=8.4", "pytest-cov==7.1.0"]
+dependencies = [
+    "coverage==7.17.3",
+    "pytest>=8.4",
+    "pytest-cov==7.1.0",
+]
 keywords = ["coverage", "pytest", "webassembly", "pyodide"]
 classifiers = ["Development Status :: 3 - Alpha", "Framework :: Pytest"]
 
@@ -14,7 +18,11 @@ classifiers = ["Development Status :: 3 - Alpha", "Framework :: Pytest"]
 coverage-wasm = "coverage_wasm.pytest_plugin"
 
 [dependency-groups]
-dev = ["pytest>=9", "ruff>=0.11", "pyright>=1.1.395"]
+dev = [
+    "pyright>=1.1.395",
+    "pytest>=9",
+    "ruff>=0.11",
+]
 wasm-test = [
     "pytest-pyodide==0.59.4",
     "pytest-xdist>=3.8",

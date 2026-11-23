@@ -1,15 +1,15 @@
 # coverage-wasm
 
-**Python line and branch coverage from Wasm and the host, in one pytest report.**
+**Python line and branch coverage from Wasm and the host, in one `pytest` report.**
 
-[![100% end-to-end coverage gate](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml/badge.svg?branch=codex%2Fpypi-rc1&event=push)](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml?query=branch%3Acodex%2Fpypi-rc1)
+[![100% end-to-end coverage gate](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml/badge.svg)](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](#compatibility)
 [![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Measure Python running in [Pyodide](#pyodide), [Workerd](#workerd), or
-[CPython on WASI](#cpython-on-wasi) while you run pytest.
+[CPython on WASI](#cpython-on-wasi) while you run `pytest`.
 [`coverage.py`][coverage-py] measures code inside the guest.
-The plugin brings its coverage data back to pytest-cov, which combines it with
+The plugin brings its coverage data back to `pytest-cov`, which combines it with
 host coverage in a standard `coverage.py` report.
 
 ## Contents
@@ -37,38 +37,45 @@ uv add --dev coverage-wasm
 
 With pip, run `python -m pip install coverage-wasm` in your test environment.
 Installing the package also installs [`coverage.py`][coverage-py] for coverage
-measurement and `pytest-cov` for pytest integration. The distribution is
+measurement and `pytest-cov` for `pytest` integration. The distribution is
 `coverage-wasm` on PyPI and imported as `coverage_wasm`.
 
-### Latest preview from GitHub
+### Install from GitHub
 
-To try the current development version, use the preview branch. Your GitHub
-account needs access to the private repository.
+Install from `main` for the latest development version. Your Git credentials
+need read access while the repository is private.
 
 ```sh
-uv add --dev 'git+https://github.com/alex-au-922/coverage-wasm.git@codex/pypi-rc1'
+uv add --dev git+https://github.com/alex-au-922/coverage-wasm.git --branch main
 ```
 
-If you already have the preview branch checked out, install it directly with
-`uv add --dev /path/to/coverage-wasm`.
+Run `uv lock --upgrade-package coverage-wasm` to update a locked `main` install.
+
+For a fixed version, pick an existing [Git tag] and pass it to `--tag`.
+
+```sh
+uv add --dev git+https://github.com/alex-au-922/coverage-wasm.git --tag v0.2.0-rc.1
+```
+
+Install from a local checkout with `uv add --dev /path/to/coverage-wasm`.
 
 ### Run with coverage
 
-Choose a runtime below, then run pytest with your usual coverage options.
+Choose a runtime below, then run `pytest` with your usual coverage options.
 
 ```sh
 uv run pytest --cov --cov-report=html
 ```
 
-Pytest loads the plugin automatically. The run shows `Wasm coverage enabled`
+`pytest` loads the plugin automatically. The run shows `Wasm coverage enabled`
 and reports how many tests contributed guest data. Open `htmlcov/index.html`
 to see the merged report. Add `-v` to see which tests contributed.
 
 ## Runtimes
 
-| Runtime | What to use in pytest |
+| Runtime | What to use in `pytest` |
 | --- | --- |
-| [Pyodide](#pyodide) | A supported pytest-pyodide fixture or `targets.pyodide(runner)` |
+| [Pyodide](#pyodide) | `selenium_standalone` from `pytest-pyodide` |
 | [Workerd](#workerd) | `targets.wrangler(bundle)` with a prebuilt Python Worker |
 | [CPython on WASI](#cpython-on-wasi) | `targets.wasi(argv, grants=grants)` for a script and filesystem grants |
 
@@ -78,34 +85,33 @@ and expected branches in each HTML report.
 
 ### Pyodide
 
-Install `pytest-pyodide` in your test environment. Use a supported
-function-scoped fixture such as
-[`selenium_standalone`](https://github.com/pyodide/pytest-pyodide#usage)
-for automatic coverage. For a shared or custom runner, attach coverage
-in a host-side fixture.
+Install `pytest-pyodide` in your test environment and use its
+[`selenium_standalone`][pytest-pyodide-usage] fixture. With `--cov`, the plugin
+collects guest coverage automatically. This test copies `shipping.py` into
+Pyodide and runs the assertion there.
 
 ```python
-from collections.abc import Iterator
+from pytest_pyodide import copy_files_to_pyodide, run_in_pyodide
 
-import pytest
-
-from coverage_wasm import Pyodide, targets
-from coverage_wasm.pytest_plugin import WasmCoverage
+from coverage_wasm import Pyodide
 
 
-@pytest.fixture
-def selenium_covered(
-    selenium_module_scope: Pyodide, wasm_coverage: WasmCoverage
-) -> Iterator[Pyodide]:
-    with wasm_coverage(targets.pyodide(selenium_module_scope)) as runner:
-        yield runner
+@copy_files_to_pyodide([("shipping.py", "/home/pyodide/shipping.py")])
+@run_in_pyodide
+def test_shipping_is_free_at_threshold(selenium_standalone: Pyodide | None) -> None:
+    from shipping import shipping_fee
+
+    assert shipping_fee(100) == 0
 ```
 
-The context collects coverage before the runner shuts down.
 The [Pyodide example](examples/pyodide/README.md) exercises opposite branches
-from the host and guest and shows both branches in one report.
+from the host and guest in one report. For a shared or custom runner, open
+`wasm_coverage(targets.pyodide(runner))` in the fixture that owns the runner.
 
 ### Workerd
+
+[Cloudflare's `workerd`][cloudflare-workerd] runs Python Workers locally through
+Wrangler.
 
 #### Bundle contract
 
@@ -127,11 +133,11 @@ worker-bundle/
 `targets.wrangler(bundle)` looks for `wrangler.toml` at the bundle root.
 Pass `config=Path("deployments/cloudflare-d1/wrangler.toml")` for a nested
 config, or `config=Path("wrangler.jsonc")` for that filename. The path is
-relative to the bundle. Use Node 24 on macOS or Linux. Put Wrangler on
+relative to the bundle. Use Node 26 on macOS or Linux. Put Wrangler on
 `PATH` or pass the path to a project-installed Wrangler with `executable`.
 
 Check that Wrangler can serve the prepared directory before wiring it into
-pytest.
+`pytest`.
 
 ```sh
 wrangler dev --local --no-bundle --config ./artifacts/worker/wrangler.toml
@@ -204,7 +210,7 @@ The context manager copies the bundle into the container before startup and
 uses a test copy with the collector under `--cov`. By default the bundle is
 copied under `/` with its original directory name. Set `python_modules` to a
 relative path if the bundle stores its dependencies in a deployment
-subdirectory. It uses Node 24 and Wrangler's loopback inspector on port 9229 to
+subdirectory. It uses Node 26 and Wrangler's loopback inspector on port 9229 to
 collect before shutdown. Use a fresh Worker per test to preserve its coverage
 context.
 
@@ -284,13 +290,13 @@ uv run pytest --cov=src --cov-report=html
 Set `[tool.coverage.html] directory` to change the HTML output directory
 and `[tool.coverage.report] fail_under` to set a coverage threshold.
 
-Run plain pytest for tests only, or pass `--no-cov` when coverage is enabled
+Run `pytest` for tests only, or pass `--no-cov` when coverage is enabled
 in `addopts`. Use `@pytest.mark.no_cover` to skip guest instrumentation for
-one test. If you use pytest-xdist by default, pass `-n 0` for the Wasm run.
+one test. If you use `pytest-xdist` by default, pass `-n 0` for the Wasm run.
 
 ## Compatibility
 
-Requires host CPython 3.11+ and pytest 8.4+.
+Requires host CPython 3.11+ and `pytest` 8.4+.
 
 ## Custom launchers
 
@@ -343,41 +349,28 @@ mise test
 ```
 
 `mise test` runs the full Nox matrix. Run `mise test 3.11` to select one host
-version. The [CI workflow](.github/workflows/coverage.yml) builds one wheel
-and runs the five host versions as parallel jobs for pull requests and pushes
-to development branches. The 3.14 job also checks 100% package line and branch
-coverage and runs the example projects. Open `htmlcov/index.html` after a full
-local run or download the `coverage-wasm-reports` artifact for the package and
-example HTML reports.
+version. Develop on a feature branch and open a pull request into `main`.
+The [CI workflow](.github/workflows/coverage.yml) runs on feature branch pushes
+and pull requests. It tests one wheel across all five host versions. The
+3.14 job checks 100% package line and branch coverage and runs the examples.
+View the reports in `htmlcov/index.html` locally or in the
+`coverage-wasm-reports` Actions artifact.
 
-### Release process
+### Releases
 
-Protect `main` with a GitHub rule that requires a pull request, code-owner
-approval, and successful `build` and `Wasm E2E (Python …)` checks from the
-[coverage workflow](.github/workflows/coverage.yml).
-[`CODEOWNERS`](.github/CODEOWNERS) assigns review to `@alex-au-922`.
-Add a second eligible code owner to approve PRs authored by Alex.
+When a new package version reaches protected `main`, the
+[release workflow](.github/workflows/release.yml) tests the commit and tags
+it. Each tag points to the tested commit. To check out tagged source in a
+clone, use `git switch --detach v0.2.0-rc.1`.
 
-Set the package version in `pyproject.toml`, run `uv lock`, and update the
-examples' matching wheel references. When the version bump reaches protected
-`main`, [`release.yml`](.github/workflows/release.yml) runs the full test
-matrix against that commit. It then creates the matching tag and publishes
-stable distributions using the wheel and source archive from that run.
-
-| Release | Package version | Generated tag | Distribution |
-| --- | --- | --- | --- |
-| Candidate | `0.2.0rc1` | `v0.2.0-rc.1` | GitHub Actions artifacts |
-| Final | `0.2.0` | `v0.2.0` | PyPI and GitHub Actions artifacts |
-
-Existing tags keep their original commit. Merge a new package version to
-start another release.
-
-Before the first stable release, register a
-[pending Trusted Publisher](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/)
-on PyPI for project `coverage-wasm`, owner `alex-au-922`, repository
-`coverage-wasm`, and workflow `release.yml`. Leave the environment field
-empty for this workflow.
+| Release | Example Git tag | Distribution |
+| --- | --- | --- |
+| Candidate | `v0.2.0-rc.1` | GitHub Actions artifacts |
+| Stable | `v0.2.0` | PyPI and GitHub Actions artifacts |
 
 See the [changelog](CHANGELOG.md) and [MIT license](LICENSE).
 
 [coverage-py]: https://github.com/coveragepy/coveragepy
+[cloudflare-workerd]: https://github.com/cloudflare/workerd
+[Git tag]: https://github.com/alex-au-922/coverage-wasm/tags
+[pytest-pyodide-usage]: https://github.com/pyodide/pytest-pyodide#usage

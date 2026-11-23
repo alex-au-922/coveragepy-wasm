@@ -2,13 +2,13 @@
 
 Two tests exercise one shipping rule. Pyodide gets free shipping at the
 threshold, and native Python pays the fee below it. Run both tests with uv,
-Node.js 24, and npm. Start at the package root.
+Node.js 26, and npm. Start at the package root.
 
 ```sh
 uv build --wheel
 cd examples/pyodide
 npm install --prefix .pyodide --no-save --no-package-lock pyodide@314.0.8
-uv run pytest --cov --cov-report=html -k free_at_threshold
+uv run --upgrade-package coverage-wasm pytest --cov --cov-report=html -k free_at_threshold
 ```
 
 Open `htmlcov/index.html` and select `shipping.py`. The free-shipping branch
@@ -23,21 +23,12 @@ uv run pytest --cov --cov-report=html:htmlcov-merged
 Open `htmlcov-merged/index.html`. Both branches appear as covered in one
 `shipping.py` entry.
 
-The [fixture](conftest.py) takes the initialized `selenium_module_scope`
-runner from pytest-pyodide and attaches coverage for the current test.
-
-```python
-with wasm_coverage(targets.pyodide(selenium_module_scope)) as runner:
-    yield runner
-```
-
-The [guest test](test_shipping.py) uses this fixture with
-`@run_in_pyodide` and copies in the example's source file. The decorator
-passes `None` for the runner argument inside the guest. If your app is
-already installed in Pyodide, import it inside the test. Suites using a
-supported fixture such as
+The [guest test](test_shipping.py) requests
 [`selenium_standalone`](https://github.com/pyodide/pytest-pyodide#usage)
-can collect automatically.
+from `pytest-pyodide`. With `--cov`, coverage starts automatically.
+`@run_in_pyodide` runs the test in the guest and passes `None` as the runner
+argument there. If your app is already installed in Pyodide, import it inside
+the test.
 
 The [coverage configuration](pyproject.toml) maps guest `/home/pyodide` to
 this directory and enables branch coverage for both collectors.

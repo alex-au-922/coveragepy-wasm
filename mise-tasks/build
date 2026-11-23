@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Build and validate the wheel and source distribution"
-set -euo pipefail
-
-version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
-uv build --no-sources
-uv tool run twine check --strict "dist/coverage_wasm-$version-py3-none-any.whl" "dist/coverage_wasm-$version.tar.gz"

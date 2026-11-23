@@ -8,7 +8,7 @@ WASI runtime and the local `coverage-wasm` wheel.
 ```sh
 uv build --wheel
 cd examples/wasi
-uv run pytest --cov --cov-report=html
+uv run --upgrade-package coverage-wasm pytest --cov --cov-report=html
 ```
 
 Open `output/htmlcov/index.html`. Both shipping branches are covered. The
@@ -17,7 +17,7 @@ report uses the fixture's grant to map guest `/app/shipping.py` to
 
 The [fixture](tests/conftest.py) opens a `targets.wasi()` target with
 `wasm_coverage(target)`. It decides which application
-files the guest may see. With `--cov`, the plugin stages Coverage.py, adds a
+files the guest may see. With `--cov`, the plugin stages `coverage.py`, adds a
 temporary output grant, and collects the guest's `.coverage` file. The
 [test](tests/test_quote_wasi.py) checks the shipping amounts.
 

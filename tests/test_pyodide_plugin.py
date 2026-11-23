@@ -1,6 +1,7 @@
 from importlib.util import find_spec
 from pathlib import Path
 from shutil import which
+from textwrap import dedent
 
 import pytest
 from coverage import CoverageData
@@ -16,10 +17,18 @@ def decide(take_branch):
         return "taken"
     return "unused"
 """
-PYTEST_OPTIONS = """\
-[tool.pytest.ini_options]
-asyncio_default_fixture_loop_scope = "function"
-"""
+PYTEST_OPTIONS = dedent("""\
+    [tool.pytest.ini_options]
+    asyncio_default_fixture_loop_scope = "function"
+    """)
+DECISION_COVERAGE = dedent("""\
+    [tool.coverage.run]
+    branch = true
+    include = ["*/decision.py"]
+
+    [tool.coverage.paths]
+    source = [".", "/project"]
+    """)
 
 
 @pytest.fixture
@@ -34,17 +43,7 @@ def test_installed_plugin_collects_existing_pyodide_fixtures(
     pytester: pytest.Pytester, node_options: tuple[str, str]
 ) -> None:
     pytester.makepyprojecttoml(
-        PYTEST_OPTIONS
-        + """
-addopts = "--cov --cov-report=html"
-
-[tool.coverage.run]
-branch = true
-include = ["*/decision.py"]
-
-[tool.coverage.paths]
-source = [".", "/project"]
-"""
+        f'{PYTEST_OPTIONS}addopts = "--cov --cov-report=html"\n\n{DECISION_COVERAGE}'
     )
     program = pytester.makepyfile(decision=DECISION)
     pytester.makepyfile(
@@ -96,15 +95,13 @@ run_path(str(path))['decide']({take_branch!r})
 def test_pytest_cov_maps_source_directories_and_modules_into_pyodide(
     pytester: pytest.Pytester, node_options: tuple[str, str]
 ) -> None:
-    pytester.makepyprojecttoml(
-        PYTEST_OPTIONS
-        + """
-[tool.coverage.paths]
-app = ["src/engine", "/app"]
-project = [".", "/checkout"]
-external = ["vendor", "/vendor"]
-"""
-    )
+    coverage_paths = dedent("""\
+        [tool.coverage.paths]
+        app = ["src/engine", "/app"]
+        project = [".", "/checkout"]
+        external = ["vendor", "/vendor"]
+        """)
+    pytester.makepyprojecttoml(f"{PYTEST_OPTIONS}\n{coverage_paths}")
     program = pytester.path / "src" / "engine" / "decision.py"
     program.parent.mkdir(parents=True)
     program.write_text(DECISION, encoding="utf-8")
@@ -170,13 +167,11 @@ def test_host():
 def test_empty_pyodide_coverage_is_reported(
     pytester: pytest.Pytester, node_options: tuple[str, str]
 ) -> None:
-    pytester.makepyprojecttoml(
-        PYTEST_OPTIONS
-        + """
-[tool.coverage.run]
-include = ["*/test_guest.py"]
-"""
-    )
+    coverage_config = dedent("""\
+        [tool.coverage.run]
+        include = ["*/test_guest.py"]
+        """)
+    pytester.makepyprojecttoml(f"{PYTEST_OPTIONS}\n{coverage_config}")
     pytester.makepyfile(
         test_guest="""\
 def test_guest(selenium_standalone):
@@ -255,17 +250,7 @@ run_path(str(path))['decide'](True)
 def test_explicit_pyodide_context_works_with_and_without_automatic_fixture(
     pytester: pytest.Pytester, node_options: tuple[str, str]
 ) -> None:
-    pytester.makepyprojecttoml(
-        PYTEST_OPTIONS
-        + """
-[tool.coverage.run]
-branch = true
-include = ["*/decision.py"]
-
-[tool.coverage.paths]
-source = [".", "/project"]
-"""
-    )
+    pytester.makepyprojecttoml(f"{PYTEST_OPTIONS}\n{DECISION_COVERAGE}")
     program = pytester.makepyfile(decision=DECISION)
     pytester.makepyfile(
         test_guest='''\
