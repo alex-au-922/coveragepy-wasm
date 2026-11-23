@@ -1,7 +1,7 @@
 [tools]
-node = "26.13.1"
-python = "3.14.10"
-uv = "0.13.9"
+node = "26"
+python = "3.14"
+uv = "0.13"
 
 [env]
 UV_PYTHON = "3.14"
@@ -49,7 +49,7 @@ trap 'rm -rf -- "$temp"' EXIT
 coverage_version=$(python -c 'import tomllib; print(next(p["version"] for p in tomllib.load(open("uv.lock", "rb"))["package"] if p["name"] == "coverage"))')
 uv tool run --from pip pip download --only-binary=:all: --platform any --no-deps \
     --dest "$temp" "coverage==$coverage_version"
-uv tool run nox==2026.10.20 --error-on-missing-interpreters --parallel 2 \
+uv run --locked --only-group dev nox --error-on-missing-interpreters --parallel 2 \
     -s "$session" -- "$wheel" "$temp/coverage-$coverage_version-py3-none-any.whl"
 
 if (( $# == 0 )); then

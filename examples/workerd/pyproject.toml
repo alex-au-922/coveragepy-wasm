@@ -5,11 +5,11 @@ requires-python = ">=3.14"
 
 [dependency-groups]
 dev = [
-    "coverage-wasm==0.2.0",
-    "httpx>=0.28,<0.29",
-    "pytest>=9,<10",
-    "workers-py==1.17.9",
-    "workers-runtime-sdk==1.9.6",
+    "coverage-wasm>=0.2.0",
+    "httpx>=0.28",
+    "pytest>=9",
+    "workers-py>=1.17.9",
+    "workers-runtime-sdk>=1.9.6",
 ]
 
 [tool.uv.sources]
