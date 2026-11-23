@@ -1,0 +1,32 @@
+site_name: coverage-wasm
+site_description: Python line and branch coverage for WebAssembly in pytest
+site_url: https://alex-au-922.github.io/coveragepy-wasm/
+repo_url: https://github.com/alex-au-922/coveragepy-wasm
+repo_name: alex-au-922/coveragepy-wasm
+edit_uri: edit/main/docs/
+
+theme:
+  name: mkdocs
+  color_mode: auto
+  user_color_mode_toggle: true
+  nav_style: dark
+  favicon: assets/coverage-wasm-mark.svg
+
+extra_css:
+  - assets/site.css
+
+markdown_extensions:
+  - admonition
+
+nav:
+  - Quickstart: index.md
+  - Runtimes:
+      - Pyodide: pyodide.md
+      - Workerd: workerd.md
+      - CPython on WASI: wasi.md
+  - Coverage configuration: configuration.md
+  - Custom launchers: custom-launchers.md
+
+validation:
+  links:
+    anchors: warn

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 339 64" role="img" aria-labelledby="title">
+  <title id="title">coverage-wasm</title>
+  <style>
+    .tile, .accent { fill: #5140C5; }
+    .label { fill: #21164A; }
+    .ink { color: #FAF8FF; }
+    .outline { stroke: #D3C8FF; }
+    .python { color: #FFE8A0; }
+    @media (prefers-color-scheme: dark) {
+      .tile, .accent { fill: #B2A5FF; }
+      .label { fill: #FAF8FF; }
+      .ink { color: #21164A; }
+      .outline { stroke: #49397D; }
+      .python { color: #382044; }
+    }
+  </style>
+  <path class="tile" d="M14 2H46L62 18V50A12 12 0 0 1 50 62H14A12 12 0 0 1 2 50V14A12 12 0 0 1 14 2Z"/>
+  <path class="ink" d="M14.5 17.5L22 37L32 24L42 37L49.5 17.5" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect class="ink" x="13" y="47" width="6" height="6" fill="currentColor"/>
+  <rect class="outline" x="22.75" y="47.75" width="4.5" height="4.5" fill="none" stroke-width="1.5"/>
+  <circle class="python" cx="33" cy="51.5" r="1.4" fill="currentColor"/>
+  <path class="python" d="M38 56V44.5M38 46A3.5 3.5 0 1 1 38 50M46 44.5L49.5 51M53 44.5L47 56" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text class="label" x="82" y="43" font-family="system-ui, sans-serif" font-size="34" font-weight="700" letter-spacing="-1.1">coverage<tspan class="accent">-WASM</tspan></text>
+</svg>
