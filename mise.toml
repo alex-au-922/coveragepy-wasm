@@ -8,7 +8,7 @@ UV_PYTHON = "3.14"
 
 [tasks."docs:build"]
 description = "Build the documentation and validate internal links"
-run = "uv run --locked --only-group docs mkdocs build --strict"
+run = "uv run --locked --only-group docs zensical build --strict"
 
 [tasks.build]
 description = "Build and validate the wheel and source distribution"

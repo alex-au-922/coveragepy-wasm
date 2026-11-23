@@ -1,0 +1,65 @@
+[project]
+site_name = "coverage-wasm"
+site_description = "Python line and branch coverage for WebAssembly in pytest"
+site_url = "https://alex-au-922.github.io/coveragepy-wasm/"
+repo_url = "https://github.com/alex-au-922/coveragepy-wasm"
+repo_name = "alex-au-922/coveragepy-wasm"
+edit_uri = "edit/main/docs/"
+extra_css = ["assets/site.css"]
+nav = [
+    { Quickstart = "index.md" },
+    { Runtimes = [
+        { Pyodide = "pyodide.md" },
+        { Workerd = "workerd.md" },
+        { "CPython on WASI" = "wasi.md" },
+    ] },
+    { "Coverage configuration" = "configuration.md" },
+    { "Custom launchers" = "custom-launchers.md" },
+]
+
+[project.theme]
+variant = "classic"
+logo = "assets/coverage-wasm-mark-reverse.svg"
+favicon = "assets/coverage-wasm-mark.svg"
+font = false
+features = [
+    "content.code.copy",
+    "navigation.sections",
+    "navigation.instant",
+    "navigation.footer",
+    "navigation.top",
+    "toc.follow",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+primary = "deep purple"
+accent = "deep purple"
+toggle.icon = "material/brightness-auto"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "deep purple"
+accent = "deep purple"
+toggle.icon = "material/brightness-7"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "deep purple"
+accent = "deep purple"
+toggle.icon = "material/brightness-4"
+toggle.name = "Switch to system preference"
+
+[project.markdown_extensions]
+admonition = {}
+"pymdownx.highlight" = {}
+"pymdownx.superfences" = {}
+toc.permalink = true
+
+[project.validation]
+invalid_links = true
+invalid_link_anchors = true
