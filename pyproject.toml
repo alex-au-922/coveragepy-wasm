@@ -16,6 +16,7 @@ classifiers = ["Development Status :: 3 - Alpha", "Framework :: Pytest"]
 
 [project.urls]
 Source = "https://github.com/alex-au-922/coveragepy-wasm"
+Documentation = "https://alex-au-922.github.io/coveragepy-wasm/"
 
 [project.entry-points.pytest11]
 coverage-wasm = "coverage_wasm.pytest_plugin"
@@ -25,6 +26,9 @@ dev = [
     "pyright>=1.1.395",
     "pytest>=9",
     "ruff>=0.11",
+]
+docs = [
+    "mkdocs>=1.6.1",
 ]
 wasm-test = [
     "pytest-pyodide==0.59.4",
