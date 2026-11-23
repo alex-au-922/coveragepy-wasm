@@ -6,7 +6,7 @@ uv = "0.13.9"
 [env]
 UV_PYTHON = "3.14"
 
-[tasks."docs:build"]
+[tasks.build-doc]
 description = "Build the documentation and validate internal links"
 run = "uv run --locked --only-group docs zensical build --strict"
 
