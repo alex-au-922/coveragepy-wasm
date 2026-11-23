@@ -1,4 +1,4 @@
-name: 100% E2E coverage gate
+name: Package tests and coverage
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
             dist/*.tar.gz
 
   test:
-    name: Wasm E2E (Python ${{ matrix.python }})
+    name: Package tests (Python ${{ matrix.python }})
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 20

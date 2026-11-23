@@ -22,7 +22,7 @@ uv tool run twine check --strict "dist/coverage_wasm-$version-py3-none-any.whl" 
 '''
 
 [tasks.test]
-description = "Test the built wheel end to end and collect package coverage"
+description = "Test the built wheel and collect package coverage"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail

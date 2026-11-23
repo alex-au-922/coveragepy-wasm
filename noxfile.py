@@ -11,7 +11,7 @@ import nox
     allow_parallel=True,
 )
 def tests(session: nox.Session) -> None:
-    """Exercise the installed wheel in real Wasm runtimes on each host Python."""
+    """Run the package suite against the installed wheel on each host Python."""
     wheel, coverage_wheel = session.posargs
     session.run(
         "uv",
@@ -49,7 +49,7 @@ def tests(session: nox.Session) -> None:
         },
     )
     if ElementTree.parse(junit).findall(".//testcase/skipped"):
-        session.error("The end-to-end matrix requires every runtime test to run")
+        session.error("The test matrix requires every test to run")
 
     session.run("coverage", "combine", f"--data-file={data}")
     matrix = Path(".coverage-matrix")

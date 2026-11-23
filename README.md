@@ -5,7 +5,7 @@
 **A [`coverage.py`][coverage-py] addon for Python line and branch coverage
 from Wasm and the host in one `pytest` report.**
 
-[![e2e coverage 100%](https://img.shields.io/badge/e2e%20coverage-100%25-brightgreen)](https://github.com/alex-au-922/coveragepy-wasm/actions/workflows/coverage.yml)
+[![Package coverage 100%](https://img.shields.io/badge/package%20coverage-100%25-brightgreen)](https://github.com/alex-au-922/coveragepy-wasm/actions/workflows/coverage.yml)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](#compatibility)
 [![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -119,9 +119,11 @@ mise test
 `mise test` runs the full Nox matrix. Run `mise test 3.11` to select one host
 version. Develop on a feature branch and open a pull request into `main`.
 The [CI workflow](.github/workflows/coverage.yml) runs on feature branch pushes
-and pull requests. It tests one wheel across all five host versions. Each job
-records package line and branch data. The combined report requires 100%
-coverage across the matrix. The 3.14 job also runs the examples.
+and pull requests. It installs the built wheel on host Python 3.11–3.15 and runs
+the package suite, including tests in Pyodide, Workerd, and WASI. The combined
+report requires 100% package line and branch coverage across the full suite.
+The 3.14 job also runs the examples and uploads their application coverage
+reports separately.
 After a full local run, open `htmlcov/index.html`. On GitHub, download the
 `coverage-wasm-reports` and `coverage-wasm-example-reports` Actions artifacts.
 
