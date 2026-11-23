@@ -137,15 +137,18 @@ it to GitHub Pages.
 
 The [release workflow](.github/workflows/release.yml) runs when a package
 version changes on protected `main` or when triggered for an exact version on
-`main`. It tests the commit and tags it. To check out tagged source in a
-clone, use `git switch --detach v0.2.0`.
+`main`. It tests the commit and tags it. For a stable version, the workflow
+publishes to PyPI, then creates a GitHub Release for that tag with the same
+wheel and source distribution. To check out tagged source in a clone, use
+`git switch --detach v0.2.0`.
 
 | Release | Example Git tag | Distribution |
 | --- | --- | --- |
 | Candidate | `v0.2.0-rc.1` | GitHub Actions artifacts |
-| Stable | `v0.2.0` | PyPI and GitHub Actions artifacts |
+| Stable | `v0.2.0` | PyPI and [GitHub Releases] |
 
 See the [changelog](CHANGELOG.md) and [MIT license](LICENSE).
 
 [coverage-py]: https://github.com/coveragepy/coveragepy
 [Git tag]: https://github.com/alex-au-922/coveragepy-wasm/tags
+[GitHub Releases]: https://github.com/alex-au-922/coveragepy-wasm/releases
