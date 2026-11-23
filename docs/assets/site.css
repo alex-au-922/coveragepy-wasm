@@ -1,13 +1,9 @@
-:root {
-  --docs-accent: #5140c5;
+[data-md-color-scheme="default"] {
+  color-scheme: light;
 }
 
-[data-bs-theme="dark"] {
-  --docs-accent: #b2a5ff;
-}
-
-.navbar.bg-dark {
-  background-color: #21164a !important;
+[data-md-color-scheme="slate"] {
+  color-scheme: dark;
 }
 
 .docs-brand {
@@ -15,10 +11,4 @@
   width: min(100%, 339px);
   height: auto;
   margin: 0.5rem 0 1.5rem;
-}
-
-main a,
-[role="main"] a,
-.bs-sidebar .nav > li > a.active {
-  color: var(--docs-accent);
 }

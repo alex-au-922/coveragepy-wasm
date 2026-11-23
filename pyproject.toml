@@ -29,6 +29,7 @@ dev = [
 ]
 docs = [
     "mkdocs>=1.6.1",
+    "mkdocs-material>=9.8.2",
 ]
 wasm-test = [
     "pytest-pyodide==0.59.4",

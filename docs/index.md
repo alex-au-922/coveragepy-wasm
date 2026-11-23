@@ -3,9 +3,9 @@
 <img class="docs-brand" src="assets/coverage-wasm-wordmark.svg" alt="coverage-wasm" width="339" height="64">
 
 Measure Python line and branch coverage in Wasm and native Python in the same
-`pytest` run. `coverage-wasm` is an independent add-on for [`coverage.py`]. It
-feeds guest measurements to `pytest-cov` so both environments appear in one
-report.
+`pytest` run. `coverage-wasm` is an independent add-on for
+[`coverage.py`][coverage-py]. It feeds guest measurements to `pytest-cov` so both
+environments appear in one report.
 
 ## Install
 
@@ -43,7 +43,7 @@ coverage threshold.
 In the [Pyodide example][pyodide-example], one test runs in Pyodide and one runs
 in native Python. They cover opposite branches of `shipping.py`.
 
-[`coverage.py`]: https://coverage.readthedocs.io/
+[coverage-py]: https://coverage.readthedocs.io/
 [existing tag]: https://github.com/alex-au-922/coveragepy-wasm/tags
 [Pyodide]: pyodide.md
 [Workerd]: workerd.md
