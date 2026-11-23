@@ -27,8 +27,6 @@ def tests(session: nox.Session) -> None:
         external=True,
     )
     session.install("--no-deps", wheel)
-    if session.python == "3.11":
-        session.install("--no-deps", "pytest==8.4.0")
 
     # Keep pytester's projects outside the repository's pytest configuration.
     temp = Path(coverage_wheel).resolve().parent / f"python-{session.python}"
