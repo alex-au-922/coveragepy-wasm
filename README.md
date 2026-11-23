@@ -3,7 +3,7 @@
 **A [`coverage.py`][coverage-py] addon for Python line and branch coverage
 from Wasm and the host in one `pytest` report.**
 
-[![e2e coverage 100%](https://img.shields.io/badge/e2e%20coverage-100%25-brightgreen)](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml)
+[![e2e coverage 100%](https://img.shields.io/badge/e2e%20coverage-100%25-brightgreen)](https://github.com/alex-au-922/coveragepy-wasm/actions/workflows/coverage.yml)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](#compatibility)
 [![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -46,7 +46,7 @@ Install from `main` for the latest development version. Your Git credentials
 need read access while the repository is private.
 
 ```sh
-uv add --dev git+https://github.com/alex-au-922/coverage-wasm.git --branch main
+uv add --dev git+https://github.com/alex-au-922/coveragepy-wasm.git --branch main
 ```
 
 Run `uv lock --upgrade-package coverage-wasm` to update a locked `main` install.
@@ -54,7 +54,7 @@ Run `uv lock --upgrade-package coverage-wasm` to update a locked `main` install.
 For a fixed version, pick an existing [Git tag] and pass it to `--tag`.
 
 ```sh
-uv add --dev git+https://github.com/alex-au-922/coverage-wasm.git --tag v0.2.0-rc.1
+uv add --dev git+https://github.com/alex-au-922/coveragepy-wasm.git --tag v0.2.0-rc.1
 ```
 
 Install from a local checkout with `uv add --dev /path/to/coverage-wasm`.
@@ -380,5 +380,5 @@ See the [changelog](CHANGELOG.md) and [MIT license](LICENSE).
 
 [coverage-py]: https://github.com/coveragepy/coveragepy
 [cloudflare-workerd]: https://github.com/cloudflare/workerd
-[Git tag]: https://github.com/alex-au-922/coverage-wasm/tags
+[Git tag]: https://github.com/alex-au-922/coveragepy-wasm/tags
 [pytest-pyodide-usage]: https://github.com/pyodide/pytest-pyodide#usage
