@@ -1,7 +1,7 @@
 [project]
 name = "coverage-wasm"
 version = "0.2.0"
-description = "Bring Python coverage data from WebAssembly runtimes to Coverage.py"
+description = "A Coverage.py addon for Python line and branch coverage in WebAssembly"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -11,7 +11,7 @@ dependencies = [
     "pytest>=8.4",
     "pytest-cov==7.1.0",
 ]
-keywords = ["coverage", "pytest", "webassembly", "pyodide"]
+keywords = ["coverage", "coverage.py", "pytest", "webassembly", "pyodide"]
 classifiers = ["Development Status :: 3 - Alpha", "Framework :: Pytest"]
 
 [project.entry-points.pytest11]

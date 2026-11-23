@@ -1,8 +1,9 @@
 # coverage-wasm
 
-**Python line and branch coverage from Wasm and the host, in one `pytest` report.**
+**A [`coverage.py`][coverage-py] addon for Python line and branch coverage
+from Wasm and the host in one `pytest` report.**
 
-[![100% end-to-end coverage gate](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml/badge.svg)](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml)
+[![e2e coverage 100%](https://img.shields.io/badge/e2e%20coverage-100%25-brightgreen)](https://github.com/alex-au-922/coverage-wasm/actions/workflows/coverage.yml)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](#compatibility)
 [![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
