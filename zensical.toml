@@ -18,6 +18,7 @@ nav = [
 ]
 
 [project.theme]
+custom_dir = "overrides"
 variant = "classic"
 logo = "assets/coverage-wasm-mark-reverse.svg"
 favicon = "assets/coverage-wasm-mark.svg"
